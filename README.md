@@ -80,17 +80,17 @@ to get GECKO models with or without cell-type specific tasks.
 * adapt ***main.sh*** for number of jobs (models) to run and run ***main.sh*** from folder ***Human1_Publication_Data_Scripts\ec_GEMs\ComplementaryScripts***
 * ***main.sh*** creates jobs (one for each model) by calling the script ***generate_human_ecModels_NCI60_batch.sh***, which in turn calls ***generate_human_ecModels_NCI60_batch.m***
 
-### C. Obtain gecko model of generic traditional model
+#### C. Obtain gecko model of generic traditional model
 * move traditional generic GSMM file ***epigen/support/models/prodDNAtot.mat*** to folder ***Human1_Publication_Data_Scripts/ec_GEMs/models/humanGEM_cellLines*** in a cluster, and run script with one job
 
-### Simulations with traditional models created with Richelle's and Robinson's pipelines
+#### D. Simulations with traditional models created with Richelle's and Robinson's pipelines
 * run the script ***GEM_simul.py***:
   - creates scatter plots with log10 of abs. val. of predicted fluxes vs measured fluxes of exchange reactions of 26 metabolites.
   - creates histograms with the distribution of absolute values of measured and simulated fluxes before and after logarithmization.
   - creates scatter plots with log10 val. of predicted vs measured growth rates
   - creates boxplots with relative errors of predicted growth rates.
 
-### Simulations with GECKO models created with Richelle's and Robinson's pipelines
+#### E. Simulations with GECKO models created with Richelle's and Robinson's pipelines
 * transfer folders with cell line names from ***Human1_Publication_Data_Scripts/ec_GEMs/models/*** to folder ***epigen/support/ecGEMs_richelle/fastcore/including_tsks*** or ***epigen/support/ecGEMs_richelle/fastcore/no_tsks*** or ***epigen/support/ecGEMs_human1/init/including_tsks*** or ***epigen/support/ecGEMs_human1/init/no_tsks***, depending on whether models do cell-specific tasks or not and depending on the type of reconstruction pipeline applied
 * run the script ***ecGEM_simul.py***:
    - if required, it allows the replacement of 'prodDNAtot' reaction by an equivalent one reflecting the cell line-specific ratio of DNA methylation
