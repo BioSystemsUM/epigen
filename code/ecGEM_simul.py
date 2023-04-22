@@ -177,7 +177,6 @@ def compare_methyl_flx(mth_corr_fld_path, methlt_dt_fld, constr_ex, smp_info, li
     :param algo: algorithm used during model reconstruction
     :param exp_biomass: compare experimental biomass flux with experimental methylation
     :param envcond: path to dataframe with experimental growth rates
-
     '''
     if with_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'including_tsks')
     else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
@@ -196,6 +195,7 @@ def compare_methyl_flx(mth_corr_fld_path, methlt_dt_fld, constr_ex, smp_info, li
         file_lst = [f for f in file_lst if '-'.join(constr_ex) in f] # use only the files corresponding to the constraints we are testing
     # create scatter plots with correlations between experimental and simulated methylation related fluxes:
     for file_pth in file_lst:
+        #file_pth = file_lst[0]
         print(file_pth)
         TestMds.create_corr_files(file_pth=file_pth, mth_res_lst=mth_res_lst, list_meth_rc=list_meth_rc, divide_by_biomass=divide_by_biomass)
     # compare experimental biomass flux with experimental methylation:
@@ -483,16 +483,14 @@ if __name__ == "__main__":
     simul_ecGEMS(ecgem_md_fld=ecGEM_MD_FLD, prot_md=PROT_POOL_MD, ec_flx_fld=EC_FLX_FLD, constr_ex=constr_ex,
                  envcond=ENVCOND, smp_info=ACHILLES_SMP_INFO, medium_pth=MEDIUM_PTH, obj_id=obj_id,
                  gr_const=gr_const, with_tsk=with_tsk, maxm=maxm, algo=algo, flx_pror_rules=flx_pror_rules,
-                 prot_limit=prot_limit, prot_wf_raw=prot_wf_raw, sigma=sigma, frc=frc,
-                 cl_spec=cl_spec, md_info_pth=EXTRA_PATH, md_info_sheet=md_info_sheet)
+                 prot_limit=prot_limit, cl_spec=cl_spec, md_info_pth=EXTRA_PATH, md_info_sheet=md_info_sheet)
 
     list_meth_rc = ['arm_MAR08641', 'arm_MAR03875']
     compare_methyl_flx(mth_corr_fld_path=EC_FLX_FLD,
                        methlt_dt_fld=METHLT_FLD, constr_ex=constr_ex,
                        smp_info=ACHILLES_SMP_INFO, list_meth_rc=list_meth_rc, divide_by_biomass=divide_by_biomass,
                        with_tsk=with_tsk, obj_id=obj_id, algo=algo, exp_biomass=exp_biomass, envcond=ENVCOND)
-    list_meth_rc = ['consdirectDNA5fC', 'consdirectDNA5CaC', 'arm_prodDNA5CaC', 'arm_prodDNA5mU', 'prodAPsite3No1',
-                    'prodAPsite4No1']
+    list_meth_rc = ['consdirectDNA5fC', 'consdirectDNA5CaC', 'arm_prodDNA5CaC', 'arm_prodDNA5mU', 'prodAPsite3No1', 'prodAPsite4No1']
     compare_methyl_flx(mth_corr_fld_path=EC_FLX_FLD,
                        methlt_dt_fld=METHLT_FLD, constr_ex=constr_ex,
                        smp_info=ACHILLES_SMP_INFO, list_meth_rc=list_meth_rc, divide_by_biomass=divide_by_biomass,
@@ -542,8 +540,7 @@ if __name__ == "__main__":
                        methlt_dt_fld=METHLT_FLD, constr_ex=constr_ex,
                        smp_info=ACHILLES_SMP_INFO, list_meth_rc=list_meth_rc, divide_by_biomass=divide_by_biomass,
                        with_tsk=with_tsk, obj_id=obj_id, algo=algo, exp_biomass=exp_biomass, envcond=ENVCOND)
-    list_meth_rc = ['consdirectDNA5fC', 'consdirectDNA5CaC', 'arm_prodDNA5CaC', 'arm_prodDNA5mU', 'prodAPsite3No1',
-                    'prodAPsite4No1']
+    list_meth_rc = ['consdirectDNA5fC', 'consdirectDNA5CaC', 'arm_prodDNA5CaC', 'arm_prodDNA5mU', 'prodAPsite3No1', 'prodAPsite4No1']
     compare_methyl_flx(mth_corr_fld_path=EC_FLX_FLD,
                        methlt_dt_fld=METHLT_FLD, constr_ex=constr_ex,
                        smp_info=ACHILLES_SMP_INFO, list_meth_rc=list_meth_rc, divide_by_biomass=divide_by_biomass,

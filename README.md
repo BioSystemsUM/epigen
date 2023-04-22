@@ -103,3 +103,6 @@ to get GECKO models with or without cell-type specific tasks.
 * run script ***pathways.py***:
    - creates boxplots with average simulated flux and protein usage for top 5 pathways and central carbon + DNA (de)/methylation pathways across all cell lines/models
    - creates heatmap with pathways which flux average has the highest variances across different tissues
+* run script ***pthw_target_corr.py***:
+   - produces tables with metabolic subsystems which average flux/protein usage significantly correlates (direct/reverse) with DNA methylation level and growth rate across the different cell lines.
+     Subsystems are ordered accordingly with the correlation coefficients and only those with significant correlations (p-value < 0.05) are shown.
