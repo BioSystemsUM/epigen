@@ -79,6 +79,7 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     feas=0
     unfeas=0
     for md_nm in md_nms:
+        # md_nm = 'SW620_LARGE_INTESTINE'
         print(md_nm)
         md_pth = os.path.join(ecgem_md_fld, md_nm, prot_md)
         if md_nm == 'KIDNEY_786O':  # matlab doesn't accept variables starting with numbers, so the name is inverted

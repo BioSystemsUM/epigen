@@ -150,7 +150,6 @@ class PathAnalysis:
         if type(constr_ex) == list:
             file_lst = [f for f in file_lst if '-'.join(constr_ex) in f]  # use only the files corresponding to the constraints we are testing
         file_pth = file_lst[0]
-        print(file_pth)
         df = pd.read_csv(file_pth, sep='\t', index_col=0)
         with open(methlt_fl_rc) as f:
             meth_rc = json.load(f)
@@ -166,10 +165,9 @@ class PathAnalysis:
         no_enz_r = [r for r in genr_nodraw if 'No' not in r and 'arm_' not in r]  # list of remaining reactions with no associated enzyme (non-catalyzed reactions)
         impt_r = set(one_enz_r).union(set(arm_r)).union(set(no_enz_r))  # all reactions except 'draw_prot', 'prot_pool_exchange', and leg reactions corresponding to arm_reactions (i.e. isozymes of arm_reactions)
         excp = ['prodDNAtot', 'adaptbiomass']  # artificial reactions - pseudo-reactions
-        mthrc = [r for r in (set(meth_rc) - set(excp)) if 'transp' not in r]  # all DNA methylation reactions except transport and artificial (pseudo-reactions)
-        # get dictionary with reaction id vs subsystem in generic gecko model,
-        # for all reactions except 'draw_prot', 'prot_pool_exchange', and leg reactions
-        # corresponding to arm_reactions (i.e. isozymes of arm_reactions):
+        mthrc = [r for r in (set(meth_rc) - set(excp)) if 'transp' not in r] + ['MAR08641']  # all DNA methylation reactions except transport and artificial (pseudo-reactions)
+        # get dictionary with reaction id vs subsystem in generic gecko model, for all reactions except
+        # 'draw_prot', 'prot_pool_exchange', and leg reactions corresponding to arm_reactions (i.e. isozymes of arm_reactions):
         sb_gek_d = {r: 'Transport reactions' if 'transp' in r else 'Artificial reactions' if r in excp else 'Dna (de)/methylation' if [r for mrc in mthrc if mrc in r] else sb_d[r.split('_')[1]] if r.startswith('arm_') else sb_d[r.split('_')[0]] if '_REV' in r else sb_d[r[:-3]] if r.endswith('No1') else sb_d[r] for r in impt_r}
         # from the simulated fluxes keep those of all reactions except 'draw_prot', 'prot_pool_exchange', and leg reactions corresponding to arm_reactions (i.e. isozymes of arm_reactions)
         otf = df.loc[set(df.index).intersection(impt_r)]
@@ -271,7 +269,7 @@ class PathAnalysis:
         m = load_yaml_model(gen_md_pth)  # generic traditional model
         sb_d = {r.id: r.subsystem[0] for r in m.reactions}
         excp = ['prodDNAtot', 'adaptbiomass']  # artificial reactions - pseudo-reactions
-        mthrc = [r for r in (set(meth_rc) - set(excp)) if 'transp' not in r]  # all DNA methylation reactions except transport and artificial (pseudo-reactions)
+        mthrc = [r for r in (set(meth_rc) - set(excp)) if 'transp' not in r] + ['MAR08641']  # all DNA methylation reactions except transport and artificial (pseudo-reactions)
         sb_gek_d = {r: 'Transport reactions' if 'transp' in r else 'Artificial reactions' if r in excp else 'Dna (de)/methylation' if [r for mrc in mthrc if mrc in r] else sb_d[r.split('_')[0]] if '_REV' in r else sb_d[re.sub(r'No\d+', '', r)] if bool(re.search(r'No\d+', r)) else sb_d[r] for r in ofr.index}
         nd3 = ofr.join(pd.DataFrame(sb_gek_d, index=['Subsystem']).T)
         # - note: same enzyme may be used by different reactions of different subsystems, e.g. nd3.loc[nd3['Enzyme'] == 'prot_A0A087WXM9'],
