@@ -826,16 +826,7 @@ if '__name__' == '__main__':
     pthw_corr_meth_bmindp(fld_pth=FLD_PTH, fl_nm=FLX_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO, gen_gecko_pth=GEN_GECKO_PTH, div_bm=div_bm)
     # pathways which protein usage in average significantly correlates (directly/inversely) with DNA methylation level/growth rate:
     pthw_corr_meth_bmindp(fld_pth=FLD_PTH, fl_nm=PRT_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO, fl_nm_bm=FLX_FL_NM, gen_gecko_pth=GEN_GECKO_PTH, div_bm=div_bm, ensembl_symbol_file=ENSEMBL_SYMBOL_FILE)
-    ## dependently of growth rate:
-    div_bm = False
-    # pathways which fluxes in average significantly correlates (directly/inversely) with DNA methylation level/growth rate:
-    pthw_corr_meth_bmindp(fld_pth=FLD_PTH, fl_nm=FLX_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO,
-                          gen_gecko_pth=GEN_GECKO_PTH, div_bm=div_bm)
-    # pathways which protein usage in average significantly correlates (directly/inversely) with DNA methylation level/growth rate:
-    pthw_corr_meth_bmindp(fld_pth=FLD_PTH, fl_nm=PRT_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO,
-                          fl_nm_bm=FLX_FL_NM, gen_gecko_pth=GEN_GECKO_PTH, div_bm=div_bm,
-                          ensembl_symbol_file=ENSEMBL_SYMBOL_FILE)
-
+    
     ### Pathways over-represented in genes which gene expression correlates with overall DNA methylation:
     ## independently of growth rate:
     METHLT_FLD='data/methylation'
