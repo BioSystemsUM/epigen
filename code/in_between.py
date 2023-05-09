@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 from functools import reduce
 
-def add_essential_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_pth, base_fld, md_info_pth, md_info_sheet, medium_path, with_tsk):
+def add_necessary_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_pth, base_fld, md_info_pth, md_info_sheet, medium_path, with_tsk, demeth_tsk=False):
     '''
     - adds essential reactions for the DNA demethylation tasks if those tasks are suppose to be done by the cell line
     - adds reactions involved in DNA demethylation that do not require enzymes and that wouldn't be otherwise included
@@ -30,10 +30,15 @@ def add_essential_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_p
     :param md_info_sheet: name of excel sheet with tissue specific DNA methylation information
     :param medium_path: path to .json file with medium composition. contains a dict of the format {metabolite_id: reaction_id}
     :param with_tsk: bool, whether necessary reactions of tissue specific tasks were included or not
+    :param demeth_tsk: bool, whether to include necessary reactions of demethylation tasks
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
     '''
     generic_m = load_matlab_model(gen_md_base_pth)
     # in each reconstructed model:
     for fl in os.listdir(fld_md_pth):
+        # fl = os.listdir(fld_md_pth)[0]
         pth = os.path.join(fld_md_pth, fl)
         if fl == 'KIDNEY_786O.mat':  # matlab doesn't accept variables starting with numbers, so the name is inverted
             fl = '786O_KIDNEY.mat'
@@ -57,6 +62,26 @@ def add_essential_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_p
         consen_ts = consen_tsks_keep_df[cond].astype(bool)
         consen_tsks_keep = consen_ts.index[consen_ts].astype(str)
         consen_tsks_tss = [t for t in consen_tsk_lst if t['name'] in consen_tsks_keep]
+        # if with_tsk=True, all tissue specific tasks will be added (including demethylation tasks) + non-catalyzed demethylation reactions will be added
+        # otherwise, Only demethylation tasks will be added + non-catalyzed demethylation reactions will be added
+        if with_tsk: # with cell-specific tasks
+            grp_consen = set(reduce(lambda x, y: x + y, [t['mandatory_activity'] for t in consen_tsks_tss]))
+        else: # without cell specific tasks
+            if demeth_tsk: # but with demethylation tasks if task is done in the cell line
+                consen_tsks_tss = [t for t in consen_tsks_tss if t['annotations']['system'] == 'DNA (DE)METHYLATION']
+            else: # without all cell specific tasks (also the dmethylation tasks)
+                consen_tsks_tss = list()
+            if consen_tsks_tss:
+                grp_consen = set(reduce(lambda x, y: x + y, [t['mandatory_activity'] for t in consen_tsks_tss]))
+            else:
+                grp_consen = set()
+        # include de-methylation/all cell-specific task-needed reactions if corresponding tasks are done in that cell line.
+        # include un-catalyzed reactions of DNA demethylation (because of being un-catalyzed don't have a gene score),
+        # that are non-essential for the task and therefore are almost always excluded during reconstruction:
+        tokeep = grp_consen.union({'consdirectDNA5CaC', 'consdirectDNA5fC'}) - present
+        tokeep_lst = [copy.deepcopy(generic_m.reactions.get_by_id(rid)) for rid in tokeep]
+        md.add_reactions(tokeep_lst)
+        '''
         # if with_tsk=False,
         # then only the reactions needed for DNA demethylation tasks will be added
         # otherwise reactions of all tissue-specific tasks will be added:
@@ -71,6 +96,7 @@ def add_essential_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_p
             tokeep = (grp_consen).union({'consdirectDNA5CaC', 'consdirectDNA5fC'}) - present
             tokeep_lst = [copy.deepcopy(generic_m.reactions.get_by_id(rid)) for rid in tokeep]
             md.add_reactions(tokeep_lst)
+        '''
         # exclude models for which no DNA methylation reaction information is known:        tss_spc_df = pd.read_excel(md_info_pth, sheet_name=md_info_sheet, skipfooter=11, index_col=0, skiprows=6)
         tss_spc_df = pd.read_excel(md_info_pth, sheet_name=md_info_sheet, skipfooter=11, index_col=0, skiprows=6)
         if np.isnan(tss_spc_df.loc['MAM01722n', cond]):  # if no information on DNA methylation is given
@@ -101,8 +127,6 @@ def add_essential_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_p
                 print(f'{cond} infeasible')
 
 if __name__ == "__main__":
-    # with only the DNA demethylation tasks (other cell line specific tasks are excluded):
-    with_tsk = False
     GEN_MD_BASE_PTH = 'support/models/prodDNAtot.mat'
     FLD_MD_PTH = 'data/models_tINIT_human_pipe/init'
     MEDIUM_PTH = 'data/hams_medium_composition.json'
@@ -110,11 +134,11 @@ if __name__ == "__main__":
     CONSEN_TSK_JSON_PATH = 'support/tasks/metabolicTasks_processed_consensus.json'
     BS_PTH = 'support/reconstruction/prodDNAtot_25_75_mean/task_protected/no_protect_inner_spont/no_wo_data_protected/fastcore'
     EXTRA_PATH = 'data/md_modify.xlsx'
-    if with_tsk:
-        final_fld_md_pth = os.path.join(FINAL_FLD_MD_PTH, 'including_tsks')
-    else:
-        final_fld_md_pth = FINAL_FLD_MD_PTH
-    add_essential_rc(fld_md_pth=FLD_MD_PTH, final_fld_md_pth=final_fld_md_pth,
+    # without cell line specific tasks
+    # + NO demethylation cell specific tasks:
+    with_tsk = False
+    final_fld_md_pth = FINAL_FLD_MD_PTH
+    add_necessary_rc(fld_md_pth=FLD_MD_PTH, final_fld_md_pth=final_fld_md_pth,
                      gen_md_base_pth=GEN_MD_BASE_PTH,
                      consen_tsk_pth=CONSEN_TSK_JSON_PATH,
                      base_fld=BS_PTH,
@@ -123,18 +147,10 @@ if __name__ == "__main__":
                      medium_path=MEDIUM_PTH,
                      with_tsk=with_tsk)
 
-    # with all consensus (cell line specific) tasks:
+    # with consensus (cell line specific) tasks
     with_tsk = True
-    GEN_MD_BASE_PTH = 'support/models/prodDNAtot.mat'
-    FLD_MD_PTH = 'data/models_tINIT_human_pipe/init'
-    MEDIUM_PTH = 'data/hams_medium_composition.json'
-    FINAL_FLD_MD_PTH = 'support/models_tINIT_human_pipe/init'
-    CONSEN_TSK_JSON_PATH = 'support/tasks/metabolicTasks_processed_consensus.json'
-    BS_PTH = 'support/reconstruction/prodDNAtot_25_75_mean/task_protected/no_protect_inner_spont/no_wo_data_protected/fastcore'
-    EXTRA_PATH = 'data/md_modify.xlsx'
     if with_tsk: final_fld_md_pth = os.path.join(FINAL_FLD_MD_PTH, 'including_tsks')
-    else: final_fld_md_pth=FINAL_FLD_MD_PTH
-    add_essential_rc(fld_md_pth=FLD_MD_PTH, final_fld_md_pth=final_fld_md_pth,
+    add_necessary_rc(fld_md_pth=FLD_MD_PTH, final_fld_md_pth=final_fld_md_pth,
                      gen_md_base_pth=GEN_MD_BASE_PTH,
                      consen_tsk_pth=CONSEN_TSK_JSON_PATH,
                      base_fld=BS_PTH,
@@ -142,4 +158,19 @@ if __name__ == "__main__":
                      md_info_sheet='DNAtot_coef',
                      medium_path=MEDIUM_PTH,
                      with_tsk=with_tsk)
+
+    # without cell line specific tasks
+    # + WITH demethylation cell specific tasks:
+    with_tsk = False
+    demeth_tsk = True
+    final_fld_md_pth = os.path.join(FINAL_FLD_MD_PTH, 'notsk_wdemethtsk')
+    add_necessary_rc(fld_md_pth=FLD_MD_PTH, final_fld_md_pth=final_fld_md_pth,
+                     gen_md_base_pth=GEN_MD_BASE_PTH,
+                     consen_tsk_pth=CONSEN_TSK_JSON_PATH,
+                     base_fld=BS_PTH,
+                     md_info_pth=EXTRA_PATH,
+                     md_info_sheet='DNAtot_coef',
+                     medium_path=MEDIUM_PTH,
+                     with_tsk=with_tsk,
+                     demeth_tsk=demeth_tsk)
 

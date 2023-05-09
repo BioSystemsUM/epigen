@@ -219,7 +219,7 @@ if __name__ == "__main__":
     ###########################
     # - model without tissue specific DNA methylation proportions
     # - GEM
-    # - INIT without tasks (but with the demethylation ones)
+    # - INIT without tasks
     # - medium open
     # - no constraints on biomass
     # - pFBA with biomass as objective
@@ -335,7 +335,7 @@ if __name__ == "__main__":
     ###########################
     # - model without tissue specific DNA methylation proportions
     # - GEM
-    # - INIT without tasks (but with the demethylation ones)
+    # - INIT without tasks
     # - medium Defined
     # - no constraints on biomass
     # - pFBA with biomass as objective
@@ -393,7 +393,7 @@ if __name__ == "__main__":
     ###########################
     # - model without tissue specific DNA methylation proportions
     # - GEM
-    # - INIT without tasks (but with the demethylation ones)
+    # - INIT without tasks
     # - medium open
     # - WITH constraints on biomass
     # - FBA with MIN SUM OF ALL FLUXES

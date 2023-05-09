@@ -117,7 +117,7 @@ class PathAnalysis:
                              xlab_rot, xcbar, ycbar, cbar_width, cbar_height, xheat,
                              yheat, heat_wf, heat_hf, rden_xf, cden_xf, rden_yf, cden_yf, rden_wf,
                              cden_wf, rden_hf, cden_hf, cbar_lab_siz, rclust, cclust,
-                             gr_const, cl_spec):
+                             gr_const, cl_spec, demeth_tsk):
         '''
         - creates clustermaps with mean flux values of each subsystem (top 20 with highest variance) for tissues/cell lines
         - creates boxplot with flux values of specific subsystems from all models when 'per_tissue' is False or from all tissues when 'per_tissue' is True
@@ -135,10 +135,16 @@ class PathAnalysis:
         :param trsf: which of 'min_max' normalization, 'std_scaling'  (i.e. standard scaling) and 'none' to apply to rows of heatmap
         :param gr_const: whether cell growth was constraint with experimental growth rates
         :param cl_spec: bool, whether cell line specific reaction of 'prodDNAtot' was used (True) or the generic was used instead (False).
+        :param demeth_tsk: bool, whether necessary reactions of demethylation tasks were included
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
         # other params used in applyclustermap
         '''
         if with_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'including_tsks')
-        else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
+        else:
+            if demeth_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'notsk_wdemethtsk')
+            else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
         if constr_ex: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'w_flux_constr')
         else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'no_flux_constr')
         if gr_const: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'biomass_constr')
@@ -218,7 +224,7 @@ class PathAnalysis:
                                 xlab_rot, xcbar, ycbar, cbar_width, cbar_height, xheat,
                                 yheat, heat_wf, heat_hf, rden_xf, cden_xf, rden_yf, cden_yf, rden_wf,
                                 cden_wf, rden_hf, cden_hf, cbar_lab_siz, rclust, cclust,
-                                gr_const, cl_spec):
+                                gr_const, cl_spec, demeth_tsk):
         '''
             - creates clustermaps with mean protein usage of each subsystem (top 20 with highest variance) for tissues/cell lines
             - creates boxplot with protein usage of specific subsystems from all models when 'per_tissue' is False or from all tissues when 'per_tissue' is True
@@ -237,10 +243,16 @@ class PathAnalysis:
             :param trsf: which of 'min_max' normalization, 'std_scaling'  (i.e. standard scaling) and 'none' to apply to rows of heatmap
             :param gr_const: whether cell growth was constraint with experimental growth rates
             :param cl_spec: bool, whether cell line specific reaction of 'prodDNAtot' was used (True) or the generic was used instead (False).
+            :param demeth_tsk: bool, whether necessary reactions of demethylation tasks were included
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
             # other params used in applyclustermap
         '''
         if with_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'including_tsks')
-        else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
+        else:
+            if demeth_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'notsk_wdemethtsk')
+            else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
         if constr_ex: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'w_flux_constr')
         else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'no_flux_constr')
         if gr_const: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'biomass_constr')

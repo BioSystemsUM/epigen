@@ -218,12 +218,12 @@ def pthw_corr_meth_bmindp(fld_pth, fl_nm, methlt_dt_fld, smp_info, gen_gecko_pth
         sig_common_pos.to_csv(os.path.join(fld_pth, 'common_butcoefpearson', f'corr_meth_prot_usage_pos{bmv}.tsv'), sep='\t')
         sig_common_neg.to_csv(os.path.join(fld_pth, 'common_butcoefpearson', f'corr_meth_prot_usage_neg{bmv}.tsv'), sep='\t')
 
-def experimental_corr_test(methlt_dt_fld, trscp_pth, mth_trscp_corrvalue, envcond, gen_gecko_pth, ensembl_symbol_file,
+def experimental_corr(methlt_dt_fld, trscp_pth, mth_trscp_corrvalue, envcond, gen_gecko_pth, ensembl_symbol_file,
                            smp_info, gen_md_pth_sbml, gen_md_pth, fld_pth, div_growth):
     '''
     - identify metabolic subsystems over-represented in the list of reactions associated with:
      * genes which expression level correlate (positively/negatively) with overall DNA methylation level
-     independently of cell growth rate across different cell lines
+     (if required independently of cell growth rate) across different cell lines
     - check whether certain genes are in the list of genes which expression correlates with overall methylation
     :param methlt_dt_fld: path to folder where file with experimental DNA methylation fluxes is.
     :param trscp_pth: path to file with gene expression data
@@ -366,7 +366,7 @@ def experimental_corr_test(methlt_dt_fld, trscp_pth, mth_trscp_corrvalue, envcon
         print('None of the genes we want to check, had expression correlating with overall methylation')
 
 
-def experimental_corr(meth_fl_nm, methlt_dt_fld, smp_info, ensembl_symbol_file, gen_gecko_pth, gen_md_pth,
+def experimental_corr_test(meth_fl_nm, methlt_dt_fld, smp_info, ensembl_symbol_file, gen_gecko_pth, gen_md_pth,
                       gen_md_pth_sbml, all_prom_same_behavior, mth_mth_corrvalue, fld_pth,
                       envcond, div_growth, mth_exp_corrvalue):
     '''
@@ -812,9 +812,9 @@ def experimental_corr(meth_fl_nm, methlt_dt_fld, smp_info, ensembl_symbol_file, 
     # {'ENSG00000059377', 'ENSG00000138029', 'ENSG00000173614'}
 '''
 if '__name__' == '__main__':
-    ### Pathways which flux/protein usage correlates with overall methylation
+    ### Pathways/individual genes/individual reactions which flux/protein usage correlates with overall methylation
     ## independently of growth rate:
-    FLD_PTH='results/ecGEM_simul_human1/init/no_tsks/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
+    FLD_PTH='results/ecGEM_simul_human1/init/notsk_wdemethtsk/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
     FLX_FL_NM='allflx_rc_substm.tsv'
     PRT_FL_NM='allprot_rc_substm.tsv'
     METHLT_FLD = 'data/methylation'
@@ -826,7 +826,7 @@ if '__name__' == '__main__':
     pthw_corr_meth_bmindp(fld_pth=FLD_PTH, fl_nm=FLX_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO, gen_gecko_pth=GEN_GECKO_PTH, div_bm=div_bm)
     # pathways which protein usage in average significantly correlates (directly/inversely) with DNA methylation level/growth rate:
     pthw_corr_meth_bmindp(fld_pth=FLD_PTH, fl_nm=PRT_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO, fl_nm_bm=FLX_FL_NM, gen_gecko_pth=GEN_GECKO_PTH, div_bm=div_bm, ensembl_symbol_file=ENSEMBL_SYMBOL_FILE)
-    
+
     ### Pathways over-represented in genes which gene expression correlates with overall DNA methylation:
     ## independently of growth rate:
     METHLT_FLD='data/methylation'
@@ -837,14 +837,14 @@ if '__name__' == '__main__':
     ACHILLES_SMP_INFO='data/sample_info.csv'
     GEN_MD_PTH_SBML='support/models/prodDNAtot.xml'  # traditional generic model with DNA meth and demethylation reactions
     GEN_MD_PTH='data/models/Human-GEM.yml'
-    FLD_PTH='results/ecGEM_simul_human1/init/no_tsks/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
+    FLD_PTH='results/ecGEM_simul_human1/init/notsk_wdemethtsk/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
     DIV_GROWTH=True
     mth_trscp_corrvalue='direct'
-    experimental_corr_test(methlt_dt_fld=METHLT_FLD, trscp_pth=TRSCP_PTH, mth_trscp_corrvalue=mth_trscp_corrvalue, envcond=ENVCOND,
+    experimental_corr(methlt_dt_fld=METHLT_FLD, trscp_pth=TRSCP_PTH, mth_trscp_corrvalue=mth_trscp_corrvalue, envcond=ENVCOND,
                            gen_gecko_pth=GEN_GECKO_PTH, ensembl_symbol_file=ENSEMBL_SYMBOL_FILE, smp_info=ACHILLES_SMP_INFO,
                            gen_md_pth_sbml=GEN_MD_PTH_SBML, gen_md_pth=GEN_MD_PTH, fld_pth=FLD_PTH, div_growth=DIV_GROWTH)
     mth_trscp_corrvalue='inverse'
-    experimental_corr_test(methlt_dt_fld=METHLT_FLD, trscp_pth=TRSCP_PTH, mth_trscp_corrvalue=mth_trscp_corrvalue, envcond=ENVCOND,
+    experimental_corr(methlt_dt_fld=METHLT_FLD, trscp_pth=TRSCP_PTH, mth_trscp_corrvalue=mth_trscp_corrvalue, envcond=ENVCOND,
                            gen_gecko_pth=GEN_GECKO_PTH, ensembl_symbol_file=ENSEMBL_SYMBOL_FILE, smp_info=ACHILLES_SMP_INFO,
                            gen_md_pth_sbml=GEN_MD_PTH_SBML, gen_md_pth=GEN_MD_PTH, fld_pth=FLD_PTH, div_growth=DIV_GROWTH)
 
@@ -857,7 +857,7 @@ if '__name__' == '__main__':
     GEN_GECKO_PTH='support/models/prodDNAtot/ecModel_batch.mat'
     GEN_MD_PTH='data/models/Human-GEM.yml'
     GEN_MD_PTH_SBML='support/models/prodDNAtot.xml'  # traditional generic model with DNA meth and demethylation reactions
-    FLD_PTH='results/ecGEM_simul_human1/init/no_tsks/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
+    FLD_PTH='results/ecGEM_simul_human1/init/notsk_wdemethtsk/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
     FL_NM='allflx_rc_substm.tsv'
     ENVCOND='data/constraints/1218595databases1_corrected_further_cal.xls'
     all_prom_same_behavior=False  # whether to use only genes where all promoters are either directly or inversely correlated
@@ -867,11 +867,11 @@ if '__name__' == '__main__':
     mth_mth_corrvalue='direct'  # whether to use direct or inverse correlation between overall methylation and gene methylation
     div_growth=False  # whether to divide by the experimental growth rate
     mth_exp_corrvalue='inverse'  # whether to use direct or inverse correlation between gene methylation and gene expression
-    experimental_corr(meth_fl_nm=METH_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO, ensembl_symbol_file=ENSEMBL_SYMBOL_FILE, gen_gecko_pth=GEN_GECKO_PTH, gen_md_pth=GEN_MD_PTH,
+    experimental_corr_test(meth_fl_nm=METH_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO, ensembl_symbol_file=ENSEMBL_SYMBOL_FILE, gen_gecko_pth=GEN_GECKO_PTH, gen_md_pth=GEN_MD_PTH,
                       gen_md_pth_sbml=GEN_MD_PTH_SBML, all_prom_same_behavior=all_prom_same_behavior, mth_mth_corrvalue=mth_mth_corrvalue, fld_pth=FLD_PTH,
                       envcond=ENVCOND, div_growth=div_growth, mth_exp_corrvalue=mth_exp_corrvalue)
     mth_exp_corrvalue = 'direct'  # whether to use direct or inverse correlation between gene methylation and gene expression
-    experimental_corr(meth_fl_nm=METH_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO,
+    experimental_corr_test(meth_fl_nm=METH_FL_NM, methlt_dt_fld=METHLT_FLD, smp_info=ACHILLES_SMP_INFO,
                       ensembl_symbol_file=ENSEMBL_SYMBOL_FILE, gen_gecko_pth=GEN_GECKO_PTH, gen_md_pth=GEN_MD_PTH,
                       gen_md_pth_sbml=GEN_MD_PTH_SBML, all_prom_same_behavior=all_prom_same_behavior,
                       mth_mth_corrvalue=mth_mth_corrvalue, fld_pth=FLD_PTH,
@@ -901,7 +901,7 @@ if '__name__' == '__main__':
     GEN_GECKO_PTH = 'support/models/prodDNAtot/ecModel_batch.mat'
     GEN_MD_PTH = 'data/models/Human-GEM.yml'
     GEN_MD_PTH_SBML = 'support/models/prodDNAtot.xml'  # traditional generic model with DNA meth and demethylation reactions
-    FLD_PTH = 'results/ecGEM_simul_human1/init/no_tsks/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
+    FLD_PTH = 'results/ecGEM_simul_human1/init/notsk_wdemethtsk/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
     FL_NM = 'allflx_rc_substm.tsv'
     ENVCOND = 'data/constraints/1218595databases1_corrected_further_cal.xls'
     all_prom_same_behavior = False  # whether to use only genes where all promoters are either directly or inversely correlated
@@ -930,7 +930,7 @@ if '__name__' == '__main__':
     GEN_GECKO_PTH='support/models/prodDNAtot/ecModel_batch.mat'
     METH_FL_NM='CCLE_RRBS_TSS1kb_20181022.txt'
     METHLT_FLD = 'data/methylation'
-    FLD_PTH='results/ecGEM_simul_human1/init/no_tsks/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
+    FLD_PTH='results/ecGEM_simul_human1/init/notsk_wdemethtsk/no_flux_constr/biomass_constr/cl_spec_DNAtot/corr_pth_mth'
     ENSEMBL_SYMBOL_FILE='support/mappings/ensembl_symbol_human.json'
     enzflx='enzyme' # either 'enzyme' usage or reaction 'flux'
     enzflx_bm_corrtype='spearman' # method of correlation between enzyme usage/flux and cell growth rate

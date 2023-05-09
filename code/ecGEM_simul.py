@@ -23,7 +23,7 @@ from scipy.stats.mstats import spearmanr
 
 def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info, medium_pth,
                  obj_id, gr_const, with_tsk, maxm, algo, flx_pror_rules, prot_limit, cl_spec,
-                 md_info_pth, md_info_sheet, **kwargs):
+                 md_info_pth, md_info_sheet, demeth_tsk=False, **kwargs):
     '''
     - simulations with ecGEMS
     :param ecgem_md_fld: - directory where folders with the reconstructed ecModels are.
@@ -46,6 +46,10 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     :param cl_spec: bool, whether to use cell line specific reaction of 'prodDNAtot' (True) or use the generic instead (False).
     :param md_info_pth: path to excel file with tissue specific DNA methylation information
     :param md_info_sheet: name of excel sheet with tissue specific DNA methylation information
+    :param demeth_tsk: bool, whether necessary reactions of demethylation tasks were included
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
     :param kwargs: * rc_remove_lst: list of ids of reactions to remove
                    * rc_add_lst: list of dictionaries with keys 'rc_id', 'subsystem', 'lb', 'ub' and 'mtlst'
                                   each dictionary has the information of one reaction.
@@ -71,7 +75,9 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     grf['mean'] = grf.mean(axis=1)
     # load each model:
     if with_tsk: ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'including_tsks')
-    else: ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'no_tsks')
+    else:
+        if demeth_tsk: ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'notsk_wdemethtsk')
+        else: ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'no_tsks')
     md_nms = os.listdir(ecgem_md_fld)
     all_flx_d = dict()
     exc_flx = dict()
@@ -155,7 +161,7 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
         # update dictionaries with simulated exchange reactions' flux values and growth rates:
         exc_flx, mass_final_flx = Simulation.get_exc_grw_flx(m=md, m_nm=md_nm, exp_df=exp_df, all_flx_d=all_flx_d, exc_flx=exc_flx, mass_final_flx=mass_final_flx, md_type='ecGEM')
     # save dataframe with all fluxes of all models:
-    fld_fn = Simulation.save_all_flx_mds(all_flx_d=all_flx_d, obj_id=obj_id, flx_fld=ec_flx_fld, algo=algo, constr_ex_name=constr_ex_name, with_tsk=with_tsk, constr_ex=constr_ex, gr_const=gr_const, cl_spec=cl_spec)
+    fld_fn = Simulation.save_all_flx_mds(all_flx_d=all_flx_d, obj_id=obj_id, flx_fld=ec_flx_fld, algo=algo, constr_ex_name=constr_ex_name, with_tsk=with_tsk, constr_ex=constr_ex, gr_const=gr_const, cl_spec=cl_spec, demeth_tsk=demeth_tsk)
     # scatter plot of exchange reactions fluxes + histograms:
     Graphs.plot_exc_flx(exp_df, exc_flx, fld_fn)
     # scatter plot of biomass reaction fluxes + boxplot with relative errors:
@@ -163,7 +169,7 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     print('feasible:', feas)
     print('unfeasible:', unfeas)
 
-def compare_methyl_flx(mth_corr_fld_path, methlt_dt_fld, constr_ex, smp_info, list_meth_rc, divide_by_biomass, with_tsk, obj_id, algo, exp_biomass, envcond):
+def compare_methyl_flx(mth_corr_fld_path, methlt_dt_fld, constr_ex, smp_info, list_meth_rc, divide_by_biomass, with_tsk, obj_id, algo, exp_biomass, envcond, demeth_tsk=False):
     '''
     - compare the simulated fluxes of methylation related reactions with DNA methylation levels
     :param mth_corr_fld_path: path to analysis folder
@@ -178,9 +184,15 @@ def compare_methyl_flx(mth_corr_fld_path, methlt_dt_fld, constr_ex, smp_info, li
     :param algo: algorithm used during model reconstruction
     :param exp_biomass: compare experimental biomass flux with experimental methylation
     :param envcond: path to dataframe with experimental growth rates
+    :param demeth_tsk: bool, whether necessary reactions of demethylation tasks were included
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
     '''
     if with_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'including_tsks')
-    else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
+    else:
+        if demeth_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'notsk_wdemethtsk')
+        else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
     if constr_ex: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'w_flux_constr')
     else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'no_flux_constr')
     if gr_const: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'biomass_constr')
@@ -414,7 +426,7 @@ if __name__ == "__main__":
     ###########################
     # - model without tissue specific DNA methylation proportions
     # - ecGEM
-    # - INIT without tasks - the best strategy to ecGEMs
+    # - INIT without tasks
     # - medium open
     # - CONstraints on biomass
     # - minimize total protein as objective + overall protein limited
@@ -456,7 +468,7 @@ if __name__ == "__main__":
     ###########################
     # - model without tissue specific DNA methylation proportions
     # - ecGEM
-    # - INIT without tasks - the best strategy to ecGEMs
+    # - INIT without tasks
     # - medium open
     # - CONstraints on biomass
     # - minimize total protein as objective
@@ -546,3 +558,52 @@ if __name__ == "__main__":
                        methlt_dt_fld=METHLT_FLD, constr_ex=constr_ex,
                        smp_info=ACHILLES_SMP_INFO, list_meth_rc=list_meth_rc, divide_by_biomass=divide_by_biomass,
                        with_tsk=with_tsk, obj_id=obj_id, algo=algo, exp_biomass=exp_biomass, envcond=ENVCOND)
+
+    ###########################
+    # - WITH tissue specific DNA methylation proportions
+    # - ecGEM
+    # - INIT without tasks + DEMETHYLATION TASKS IF SPECIFIC OF THE CELL LINE
+    # - medium open
+    # - CONstraints on biomass
+    # - minimize total protein as objective
+    # - ADD flux proportion rules
+    # - extra: also compare experimental biomass flux with experimental methylation
+    ###########################
+    obj_id = {'prot_pool_exchange': 1.0}
+    maxm = False
+    algo = 'init'
+    with_tsk = False
+    prot_limit = False  # no limitation on total enzyme usage
+    constr_ex = False
+    gr_const = True
+    flx_pror_rules = True # with flux rules
+    ecGEM_MD_FLD = 'support/ecGEMs_human1'
+    EC_FLX_FLD = 'results/ecGEM_simul_human1'
+    PROT_POOL_MD = 'ecModel_batch.mat'
+    MEDIUM_PTH = 'data/hams_medium_composition.json'
+    METHLT_FLD = 'data/methylation'
+    ACHILLES_SMP_INFO = 'data/sample_info.csv'  # achilles dataset cell line info
+    ENVCOND = 'data/constraints/1218595databases1_corrected_further_cal.xls'
+    divide_by_biomass = False
+    exp_biomass = True # also compare experimental biomass flux with experimental methylation
+    EXTRA_PATH = 'data/md_modify.xlsx'
+    md_info_sheet = 'DNAtot_coef'
+    cl_spec = True  # with cell line specific total DNA reaction
+    demeth_tsk=True # with demethylation tasks if specific of the cell line
+    simul_ecGEMS(ecgem_md_fld=ecGEM_MD_FLD, prot_md=PROT_POOL_MD, ec_flx_fld=EC_FLX_FLD, constr_ex=constr_ex,
+                 envcond=ENVCOND, smp_info=ACHILLES_SMP_INFO, medium_pth=MEDIUM_PTH, obj_id=obj_id,
+                 gr_const=gr_const, with_tsk=with_tsk, maxm=maxm, algo=algo, flx_pror_rules=flx_pror_rules,
+                 prot_limit=prot_limit, cl_spec=cl_spec, md_info_pth=EXTRA_PATH, md_info_sheet=md_info_sheet,
+                 demeth_tsk=demeth_tsk)
+
+    list_meth_rc = ['arm_MAR08641', 'arm_MAR03875']
+    compare_methyl_flx(mth_corr_fld_path=EC_FLX_FLD,
+                       methlt_dt_fld=METHLT_FLD, constr_ex=constr_ex,
+                       smp_info=ACHILLES_SMP_INFO, list_meth_rc=list_meth_rc, divide_by_biomass=divide_by_biomass,
+                       with_tsk=with_tsk, obj_id=obj_id, algo=algo, exp_biomass=exp_biomass, envcond=ENVCOND)
+    list_meth_rc = ['consdirectDNA5fC', 'consdirectDNA5CaC', 'arm_prodDNA5CaC', 'arm_prodDNA5mU', 'prodAPsite3No1', 'prodAPsite4No1']
+    compare_methyl_flx(mth_corr_fld_path=EC_FLX_FLD,
+                       methlt_dt_fld=METHLT_FLD, constr_ex=constr_ex,
+                       smp_info=ACHILLES_SMP_INFO, list_meth_rc=list_meth_rc, divide_by_biomass=divide_by_biomass,
+                       with_tsk=with_tsk, obj_id=obj_id, algo=algo, exp_biomass=exp_biomass, envcond=ENVCOND)
+
