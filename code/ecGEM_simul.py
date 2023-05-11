@@ -133,7 +133,8 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
             md.remove_reactions(['prodDNAtot'])
             tss_spc_df = pd.read_excel(md_info_pth, sheet_name=md_info_sheet, skipfooter=11, index_col=0, skiprows=6)
             tss_spc_df.rename(index={'DNA5hmCn ***': 'DNA5hmCn'}, inplace=True)
-            rc = Reaction(id='prodDNAtot', subsystem='', lower_bound=0.0, upper_bound=1000.0)
+            # rc = Reaction(id='prodDNAtot', subsystem='', lower_bound=0.0, upper_bound=1000.0)
+            rc = Reaction(id='prodDNAtot', subsystem='', lower_bound=0.0, upper_bound=float('inf'))
             md.add_reactions([rc])
             mtblst = ", ".join([mtb + ":" + str(-tss_spc_df.loc[mtb, md_nm]) for mtb in ["MAM01722n", "DNA5hmCn", "MAM01721n", "DNA5fCn"]]) + ", DNAtotn:1.0"
             GenericMdOperations.set_metab(mtlst=mtblst, model=md, rid='prodDNAtot')

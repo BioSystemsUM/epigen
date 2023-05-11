@@ -9,7 +9,7 @@ sys.path.extend([os.path.join(home_path, content_root, pkg) for pkg in ['code', 
 import pandas as pd
 from cobra.io import load_matlab_model
 import json
-from test_mds import TestMds
+from mewpy.simulation import get_simulator
 from cell_lines import CellLineIds
 from graphs import Graphs
 from simulation import  Simulation
@@ -21,9 +21,9 @@ import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 from scipy.stats.mstats import spearmanr
 
-def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info, medium_pth,
+def simul_ecGEMS_demeth(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info, medium_pth,
                  obj_id, gr_const, with_tsk, maxm, algo, flx_pror_rules, prot_limit, cl_spec,
-                 md_info_pth, md_info_sheet, **kwargs):
+                 md_info_pth, md_info_sheet, demeth_tsk=False, **kwargs):
     '''
     - simulations with ecGEMS
     :param ecgem_md_fld: - directory where folders with the reconstructed ecModels are.
@@ -46,6 +46,10 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     :param cl_spec: bool, whether to use cell line specific reaction of 'prodDNAtot' (True) or use the generic instead (False).
     :param md_info_pth: path to excel file with tissue specific DNA methylation information
     :param md_info_sheet: name of excel sheet with tissue specific DNA methylation information
+    :param demeth_tsk: bool, whether necessary reactions of demethylation tasks were included
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
     :param kwargs: * rc_remove_lst: list of ids of reactions to remove
                    * rc_add_lst: list of dictionaries with keys 'rc_id', 'subsystem', 'lb', 'ub' and 'mtlst'
                                   each dictionary has the information of one reaction.
@@ -70,8 +74,13 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     grf = pd.read_excel(envcond, sheet_name='GrowthRate', index_col=0)
     grf['mean'] = grf.mean(axis=1)
     # load each model:
-    if with_tsk: ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'including_tsks')
-    else: ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'no_tsks')
+    if with_tsk:
+        ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'including_tsks')
+    else:
+        if demeth_tsk:
+            ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'notsk_wdemethtsk')
+        else:
+            ecgem_md_fld = os.path.join(ecgem_md_fld, algo, 'no_tsks')
     md_nms = os.listdir(ecgem_md_fld)
     all_flx_d = dict()
     exc_flx = dict()
@@ -79,7 +88,7 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     feas=0
     unfeas=0
     for md_nm in md_nms:
-        # md_nm = md_nms[0]
+        # md_nm = 'SW620_LARGE_INTESTINE'
         print(md_nm)
         md_pth = os.path.join(ecgem_md_fld, md_nm, prot_md)
         if md_nm == 'KIDNEY_786O':  # matlab doesn't accept variables starting with numbers, so the name is inverted
@@ -98,18 +107,6 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
             md.reactions.get_by_id('prot_pool_exchange').lower_bound = 0.0
         else:
             md.reactions.get_by_id('prot_pool_exchange').bounds = (0.0, float('inf'))
-        # remove reactions needed:
-        if 'rc_remove_lst' in kwargs:
-            md.remove_reactions(kwargs['rc_remove_lst'])
-        # add reactions needed:
-        if 'rc_add_lst' in kwargs:
-            for r in kwargs['rc_add_lst']:
-                # for r in rc_add_lst:
-                if r['rc_id'] not in [reac.id for reac in md.reactions]:
-                    rc = Reaction(id=r['rc_id'], subsystem=r['subsystem'], lower_bound=r['lb'], upper_bound=r['ub'])
-                    md.add_reactions([rc])
-                    GenericMdOperations.set_metab(mtlst=r['mtlst'], model=md, rid=r['rc_id'])
-                    print(md.reactions.get_by_id(r['rc_id']).reaction)
         if cl_spec:
             # cell lines with both information for DNA5mC and DNA5hmC:
             cl_both_info = ['CAKI1_KIDNEY', 'NCIH226_LUNG', 'NCIH322M_LUNG', 'SKMEL28_SKIN',
@@ -127,7 +124,8 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
             md.remove_reactions(['prodDNAtot'])
             tss_spc_df = pd.read_excel(md_info_pth, sheet_name=md_info_sheet, skipfooter=11, index_col=0, skiprows=6)
             tss_spc_df.rename(index={'DNA5hmCn ***': 'DNA5hmCn'}, inplace=True)
-            rc = Reaction(id='prodDNAtot', subsystem='', lower_bound=0.0, upper_bound=1000.0)
+            # rc = Reaction(id='prodDNAtot', subsystem='', lower_bound=0.0, upper_bound=1000.0)
+            rc = Reaction(id='prodDNAtot', subsystem='', lower_bound=0.0, upper_bound=float('inf'))
             md.add_reactions([rc])
             mtblst = ", ".join([mtb + ":" + str(-tss_spc_df.loc[mtb, md_nm]) for mtb in ["MAM01722n", "DNA5hmCn", "MAM01721n", "DNA5fCn"]]) + ", DNAtotn:1.0"
             GenericMdOperations.set_metab(mtlst=mtblst, model=md, rid='prodDNAtot')
@@ -138,6 +136,22 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
         # add measured experimental values of growth rates if requested:
         internal_const = {}
         if gr_const: internal_const.update({'adaptbiomass': (grf.loc[md_nm, 'Growth MIN (1/h)'], grf.loc[md_nm, 'Growth MAX (1/h)'])})
+        # maximize demethylation:
+        sim = get_simulator(model=md, envcond=exch_const)
+        mth_obj_rc = ['arm_ligateDNA', 'consdirectDNA5fC', 'consdirectDNA5CaC']
+        obj_id_1st = {'prot_pool_exchange': -1E-2}
+        for r in mth_obj_rc:
+            try:
+                md.reactions.get_by_id(r)
+                obj_id_1st[r] = 1.0
+            except:
+                continue
+        sim.objective = obj_id_1st
+        maxm=True
+        flx = {}
+        res = sim.simulate(method='FBA', maximize=maxm, constraints=internal_const)
+        flx = res.fluxes
+        flx = {k: 0 if v < 1e-9 else v for k, v in flx.items()}
         # do FBA while adding flux proportion constraints for DNA methylation reactions if required:
         try:
             if 'enz_pfba' in kwargs:
@@ -155,7 +169,7 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
         # update dictionaries with simulated exchange reactions' flux values and growth rates:
         exc_flx, mass_final_flx = Simulation.get_exc_grw_flx(m=md, m_nm=md_nm, exp_df=exp_df, all_flx_d=all_flx_d, exc_flx=exc_flx, mass_final_flx=mass_final_flx, md_type='ecGEM')
     # save dataframe with all fluxes of all models:
-    fld_fn = Simulation.save_all_flx_mds(all_flx_d=all_flx_d, obj_id=obj_id, flx_fld=ec_flx_fld, algo=algo, constr_ex_name=constr_ex_name, with_tsk=with_tsk, constr_ex=constr_ex, gr_const=gr_const, cl_spec=cl_spec)
+    fld_fn = Simulation.save_all_flx_mds(all_flx_d=all_flx_d, obj_id=obj_id, flx_fld=ec_flx_fld, algo=algo, constr_ex_name=constr_ex_name, with_tsk=with_tsk, constr_ex=constr_ex, gr_const=gr_const, cl_spec=cl_spec, demeth_tsk=demeth_tsk)
     # scatter plot of exchange reactions fluxes + histograms:
     Graphs.plot_exc_flx(exp_df, exc_flx, fld_fn)
     # scatter plot of biomass reaction fluxes + boxplot with relative errors:
@@ -169,27 +183,23 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     # - Cell specific DNA methylation                                                        #
     # - with biomass constraint
     # - Exometabolite UNconstrained with
-    # minimize total protein AFTER maximizing different weights of demethylation
+    # minimize total protein AFTER maximizing demethylation
     ##########################################################################################
     ###########################
     # - WITH tissue specific DNA methylation proportions
     # - ecGEM
-    # - INIT without tasks - the best strategy to ecGEMs
+    # - INIT without tasks + DEMETHYLATION TASKS IF SPECIFIC OF THE CELL LINE
     # - medium open
     # - CONstraints on biomass
     # - minimize total protein AFTER maximize dif. weights of demethylation as objective
     # - No flux proportion rules
     ###########################
-    obj_id={'prot_pool_exchange': -1.0}
-    obj_id_1st = {'arm_ligateDNA':1.0, 'consdirectDNA5fC':1.0, 'consdirectDNA5CaC':1.0}
-    obj_id_2nd = {'prot_pool_exchange': -1.0}
-    maxm = True
     algo = 'init'
     with_tsk = False
     prot_limit = False  # no limitation on total enzyme usage
     constr_ex = False
-    gr_const = True
-    flx_pror_rules = True # No flux rules
+    gr_const = True # limit cell growth rate
+    flx_pror_rules = False  # NO flux rules
     ecGEM_MD_FLD = 'support/ecGEMs_human1'
     EC_FLX_FLD = 'results/ecGEM_simul_human1'
     PROT_POOL_MD = 'ecModel_batch.mat'
@@ -198,14 +208,16 @@ def simul_ecGEMS(ecgem_md_fld, prot_md, ec_flx_fld, constr_ex, envcond, smp_info
     ACHILLES_SMP_INFO = 'data/sample_info.csv'  # achilles dataset cell line info
     ENVCOND = 'data/constraints/1218595databases1_corrected_further_cal.xls'
     divide_by_biomass = False
-    exp_biomass = False # don't compare experimental biomass flux with experimental methylation
+    exp_biomass = False  # do NOT compare experimental biomass flux with experimental methylation
     EXTRA_PATH = 'data/md_modify.xlsx'
     md_info_sheet = 'DNAtot_coef'
     cl_spec = True  # with cell line specific total DNA reaction
-    simul_ecGEMS(ecgem_md_fld=ecGEM_MD_FLD, prot_md=PROT_POOL_MD, ec_flx_fld=EC_FLX_FLD, constr_ex=constr_ex,
-                 envcond=ENVCOND, smp_info=ACHILLES_SMP_INFO, medium_pth=MEDIUM_PTH, obj_id=obj_id,
-                 gr_const=gr_const, with_tsk=with_tsk, maxm=maxm, algo=algo, flx_pror_rules=flx_pror_rules,
-                 prot_limit=prot_limit, cl_spec=cl_spec, md_info_pth=EXTRA_PATH, md_info_sheet=md_info_sheet)
+    demeth_tsk = True  # with demethylation tasks if specific of the cell line
+    simul_ecGEMS_demeth(ecgem_md_fld=ecGEM_MD_FLD, prot_md=PROT_POOL_MD, ec_flx_fld=EC_FLX_FLD, constr_ex=constr_ex,
+                 envcond=ENVCOND, smp_info=ACHILLES_SMP_INFO, medium_pth=MEDIUM_PTH,
+                 gr_const=gr_const, with_tsk=with_tsk, algo=algo, flx_pror_rules=flx_pror_rules,
+                 prot_limit=prot_limit, cl_spec=cl_spec, md_info_pth=EXTRA_PATH, md_info_sheet=md_info_sheet,
+                 demeth_tsk=demeth_tsk)
 
     flx['arm_ligateDNA']
 
