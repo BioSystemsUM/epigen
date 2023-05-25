@@ -69,7 +69,7 @@ to get GECKO models with or without cell-type specific tasks.
     * final models did all generic metabolic tasks (done by all cell lines)
 3. run ***inbetween.py***
 * transfer files from folder ***Human1_Publication_Data_Scripts\tINIT_GEMs\run_tINIT_outputs*** to ***epigen/data/models_tINIT_human_pipe/init***
-* run the script ***inbetween.py***
+* run the script ***in_between.py***
     - gives results for with and without protection of the "consensus" tasks (cell line specific tasks).
     - always adds essential reactions for the DNA demethylation tasks if those tasks are suppose to be done by the cell line, even when testing without "consensus" tasks
     - adds non-catalyzed reactions involved in DNA demethylation that are not essential for demethylation tasks
@@ -98,11 +98,16 @@ to get GECKO models with or without cell-type specific tasks.
    - creates histograms with the distribution of abs. values of measured and simulated fluxes before and after logarithmization.
    - creates scatter plots with log10 of abs. val. of predicted vs measured growth rates
    - creates boxplots with relative errors of predicted growth rates.
-   - creates scatter plots with correlation level between simulated flux of different reactions and DNA methylation levels in different genomic positions (enhancers, TSS, ...)
+   - creates scatter plots with correlation level between simulated flux of different reactions and DNA methylation levels in different genomic positions (enhancers, TSS, ...).
    - creates a scatter plot with correlation level between measured biomass and measured methylation level of region upstream of TSS.
 * run script ***pathways.py***:
    - creates boxplots with average simulated flux and protein usage for top 5 pathways and central carbon + DNA (de)/methylation pathways across all cell lines/models
-   - creates heatmap with pathways which flux average has the highest variances across different tissues
 * run script ***pthw_target_corr.py***:
-   - produces tables with metabolic subsystems which average flux/protein usage significantly correlates (direct/reverse) with DNA methylation level and growth rate across the different cell lines.
-     Subsystems are ordered accordingly with the correlation coefficients and only those with significant correlations (p-value < 0.05) are shown.
+   - produces tables with pathways whose average flux and protein usage significantly correlated (p-value < 0.05) with overall DNA methylation levels independently of cell growth rate across the cell lines.
+   - produces tables with individual reactions/enzymes whose flux and protein usage significantly correlated (p-value < 0.05) with overall DNA methylation levels independently of cell growth rate across the cell lines.
+   - creates tables with pathways of reactions corresponding to genes whose transcription was significantly correlated with the ratio between overall DNA methylation level and experimental cell growth rate.
+   - checks whether certain genes are in the list of genes whose transcription was significantly correlated with the ratio between overall DNA methylation level and experimental cell growth rate.
+   - intersect:
+     - genes whose promoter methylation significantly correlated with its transcription.
+     - genes whose promoter methylation significantly correlated with the cell growth rate across the different cell lines.
+     - genes associated with reactions whose flux, or the genes associated with enzymes whose protein usage, significantly correlated with the cell growth rate.

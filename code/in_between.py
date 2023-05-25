@@ -16,7 +16,8 @@ from functools import reduce
 
 def add_necessary_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_pth, base_fld, md_info_pth, md_info_sheet, medium_path, with_tsk, demeth_tsk=False):
     '''
-    - adds essential reactions for the DNA demethylation tasks if those tasks are suppose to be done by the cell line
+    - if required, adds essential reactions for cell-type specific tasks when those tasks are suppose to be done by the cell line
+    - if required, adds essential reactions for the DNA demethylation tasks only when those tasks are suppose to be done by the cell line
     - adds reactions involved in DNA demethylation that do not require enzymes and that wouldn't be otherwise included
       (because they do not have an associated gene score and aren't essential for demethylation tasks)
     - replaces 'prodDNAtot' reaction by an equivalent one reflecting the cell line-specific proportion of DNA methylation
@@ -63,7 +64,7 @@ def add_necessary_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_p
         consen_tsks_keep = consen_ts.index[consen_ts].astype(str)
         consen_tsks_tss = [t for t in consen_tsk_lst if t['name'] in consen_tsks_keep]
         # if with_tsk=True, all tissue specific tasks will be added (including demethylation tasks) + non-catalyzed demethylation reactions will be added
-        # otherwise, Only demethylation tasks will be added + non-catalyzed demethylation reactions will be added
+        # otherwise, non-catalyzed demethylation reactions will be added and two options exist:
         if with_tsk: # with cell-specific tasks
             grp_consen = set(reduce(lambda x, y: x + y, [t['mandatory_activity'] for t in consen_tsks_tss]))
         else: # without cell specific tasks
@@ -75,29 +76,12 @@ def add_necessary_rc(fld_md_pth, final_fld_md_pth, gen_md_base_pth, consen_tsk_p
                 grp_consen = set(reduce(lambda x, y: x + y, [t['mandatory_activity'] for t in consen_tsks_tss]))
             else:
                 grp_consen = set()
-        # include de-methylation/all cell-specific task-needed reactions if corresponding tasks are done in that cell line.
         # include un-catalyzed reactions of DNA demethylation (because of being un-catalyzed don't have a gene score),
         # that are non-essential for the task and therefore are almost always excluded during reconstruction:
         tokeep = grp_consen.union({'consdirectDNA5CaC', 'consdirectDNA5fC'}) - present
         tokeep_lst = [copy.deepcopy(generic_m.reactions.get_by_id(rid)) for rid in tokeep]
         md.add_reactions(tokeep_lst)
-        '''
-        # if with_tsk=False,
-        # then only the reactions needed for DNA demethylation tasks will be added
-        # otherwise reactions of all tissue-specific tasks will be added:
-        if not with_tsk:
-            # select those pertaining to DNA demethylation only:
-            consen_tsks_tss = [t for t in consen_tsks_tss if t['annotations']['system'] == 'DNA (DE)METHYLATION']
-        if consen_tsks_tss:
-            grp_consen = set(reduce(lambda x, y: x + y, [t['mandatory_activity'] for t in consen_tsks_tss]))
-            # include de-methylation/all cell-specific task-needed reactions if corresponding tasks are done in that cell line.
-            # include un-catalyzed reactions of DNA demethylation (because of being un-catalyzed don't have a gene score),
-            # that are non-essential for the task and therefore are almost always excluded during reconstruction:
-            tokeep = (grp_consen).union({'consdirectDNA5CaC', 'consdirectDNA5fC'}) - present
-            tokeep_lst = [copy.deepcopy(generic_m.reactions.get_by_id(rid)) for rid in tokeep]
-            md.add_reactions(tokeep_lst)
-        '''
-        # exclude models for which no DNA methylation reaction information is known:        tss_spc_df = pd.read_excel(md_info_pth, sheet_name=md_info_sheet, skipfooter=11, index_col=0, skiprows=6)
+        # exclude models for which no DNA methylation reaction information is known:
         tss_spc_df = pd.read_excel(md_info_pth, sheet_name=md_info_sheet, skipfooter=11, index_col=0, skiprows=6)
         if np.isnan(tss_spc_df.loc['MAM01722n', cond]):  # if no information on DNA methylation is given
             print(f' No DNA methylation info available for {cond}')
@@ -147,7 +131,7 @@ if __name__ == "__main__":
                      medium_path=MEDIUM_PTH,
                      with_tsk=with_tsk)
 
-    # with consensus (cell line specific) tasks
+    # with consensus (cell line specific) tasks:
     with_tsk = True
     if with_tsk: final_fld_md_pth = os.path.join(FINAL_FLD_MD_PTH, 'including_tsks')
     add_necessary_rc(fld_md_pth=FLD_MD_PTH, final_fld_md_pth=final_fld_md_pth,

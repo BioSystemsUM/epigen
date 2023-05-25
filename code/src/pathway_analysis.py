@@ -4,7 +4,6 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import pandas as pd
 import numpy as np
 from test_mds import TestMds
-import json
 from cobra.io import load_matlab_model, load_yaml_model
 import re
 import math
