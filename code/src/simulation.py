@@ -256,7 +256,7 @@ class Simulation:
         return exc_flx, mass_final_flx
 
     @staticmethod
-    def save_all_flx_mds(all_flx_d, obj_id, flx_fld, algo, constr_ex_name, with_tsk, constr_ex, gr_const, cl_spec):
+    def save_all_flx_mds(all_flx_d, obj_id, flx_fld, algo, constr_ex_name, with_tsk, constr_ex, gr_const, cl_spec, demeth_tsk=False):
         '''
         - save dataframe with all fluxes of all models
         :param all_flx_d: dict {model_id: {reaction_id: flux value}} for all fluxes of all models
@@ -268,12 +268,18 @@ class Simulation:
         :param constr_ex: list of exchange reactions to which apply flux bound constraints. If False, no constraints are applied.
         :param gr_const: whether to constraint growth with experimental growth rates
         :param cl_spec: bool, whether to use cell line specific reaction of 'prodDNAtot' (True) or use the generic instead (False).
+        :param demeth_tsk: bool, whether necessary reactions of demethylation tasks were included
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
         :return: path to folder where to save results
         '''
         final = pd.DataFrame.from_dict(all_flx_d)
         final.fillna(0, inplace=True)  # NAs correspond to reactions that exist in some models, but not in others
         if with_tsk: fld_fn = os.path.join(flx_fld, algo, 'including_tsks')
-        else: fld_fn = os.path.join(flx_fld, algo, 'no_tsks')
+        else:
+            if demeth_tsk: fld_fn = os.path.join(flx_fld, algo, 'notsk_wdemethtsk')
+            else: fld_fn = os.path.join(flx_fld, algo, 'no_tsks')
         if constr_ex: fld_fn = os.path.join(fld_fn, 'w_flux_constr')
         else: fld_fn = os.path.join(fld_fn, 'no_flux_constr')
         if gr_const: fld_fn = os.path.join(fld_fn,'biomass_constr')

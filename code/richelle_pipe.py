@@ -55,7 +55,7 @@ def get_rc_models(generic_path, m_name, obj_id, cl_path, transcriptomics, ug_p, 
     lc_p_id = 'mean' if not lc_p else lc_p
     base_fld = os.path.join(reconst_fld, f'{m_name}_{lg_p}_{ug_p}_{lc_p_id}')
     base_fld = os.path.join(base_fld, 'task_protected') if 'path_tsk_keep' in kwargs else os.path.join(base_fld, 'no_task_protected')
-    # base_fld = os.path.join(base_fld, 'task_protected')
+    # base_fld = os.path.join(base_fld, 'task_protected') or base_fld = os.path.join(base_fld, 'no_task_protected')
     for k, v in {'protect_inner_spont': protect_inner_spont, 'wo_data_protected': wo_data_protected}.items():
         base_fld = os.path.join(base_fld, k) if v else os.path.join(base_fld, 'no_' + k)
     # for k, v in {'protect_inner_spont': protect_inner_spont, 'wo_data_protected': wo_data_protected}.items():
@@ -91,7 +91,8 @@ def get_rc_models(generic_path, m_name, obj_id, cl_path, transcriptomics, ug_p, 
     protected = ['adaptbiomass']
     tsk_lst = mtask.load_tasks(path=tsk_json_path)
     essen_tsk_lst = mtask.load_tasks(path=essen_tsk_json_path)
-    # when path_tsk_keep exists, there is task protection, otherwise, no:
+
+    # when path_tsk_keep exists, there is cell-specific task protection, otherwise, no:
     if 'path_tsk_keep' in kwargs:
         rec.weight_fc(rc_sc_path=paths['rc_sc_path'], alg=algo, protect_rc=protected, path_rc_wgts=paths['path_rc_wgts'], essen_tsk_lst=essen_tsk_lst, tsk_protect_path=path_tsk_keep, tsk_lst=tsk_lst)
     else:

@@ -53,7 +53,7 @@ Note: The MATLAB scripts are adapted from [Human-GEM GitHub repository](https://
 * transfer files from ***epigen/support/models_richelle_pipe/fastcore*** or from ***epigen/support/models_richelle_pipe/fastcore/including_tsks*** to folder ***Human1_Publication_Data_Scripts/ec_GEMs/models/humanGEM_cellLines*** in a cluster,
 to get GECKO models with or without cell-type specific tasks.
 * remember to make folders executable
-* adapt ***main.sh*** for number of jobs (models) to run and run ***main.sh*** from folder ***Human1_Publication_Data_Scripts\ec_GEMs\ComplementaryScripts***
+* adapt ***main.sh*** for number of jobs (models) to run and run ***main.sh*** from folder ***Human1_Publication_Data_Scripts/ec_GEMs/ComplementaryScripts***
 * ***main.sh*** creates jobs (one for each model) by calling the script ***generate_human_ecModels_NCI60_batch.sh***, which in turn calls ***generate_human_ecModels_NCI60_batch.m***
 
 #### B. Reconstruct models with tINIT using pipeline of [Robinson's article](https://www.science.org/doi/10.1126/scisignal.aaz1482)
@@ -69,15 +69,15 @@ to get GECKO models with or without cell-type specific tasks.
     * final models did all generic metabolic tasks (done by all cell lines)
 3. run ***inbetween.py***
 * transfer files from folder ***Human1_Publication_Data_Scripts\tINIT_GEMs\run_tINIT_outputs*** to ***epigen/data/models_tINIT_human_pipe/init***
-* run the script ***inbetween.py***
+* run the script ***in_between.py***
     - gives results for with and without protection of the "consensus" tasks (cell line specific tasks).
     - always adds essential reactions for the DNA demethylation tasks if those tasks are suppose to be done by the cell line, even when testing without "consensus" tasks
     - adds non-catalyzed reactions involved in DNA demethylation that are not essential for demethylation tasks
     - does parsimonious FBA with biomass as objective and models closed (uptake of only medium components)
     - checks whether models are feasible, produce biomass and methylate DNA
 4. run scripts to create GECKO models inside a cluster, adapted from [Human-GEM GitHub repository](https://github.com/SysBioChalmers/Human-GEM) (version 1.3.0) – [original data files here](https://doi.org/10.5281/zenodo.3577466).
-* transfer files from ***epigen/support/models_tINIT_human_pipe/init/including_tsks*** or from ***epigen/support/models_tINIT_human_pipe/init*** to folder ***Human1_Publication_Data_Scripts/ec_GEMs/models/humanGEM_cellLines*** in a cluster, to get GECKO models with or without cell-type specific tasks.
-* adapt ***main.sh*** for number of jobs (models) to run and run ***main.sh*** from folder ***Human1_Publication_Data_Scripts\ec_GEMs\ComplementaryScripts***
+* transfer files from ***epigen/support/models_tINIT_human_pipe/init/including_tsks*** or from ***epigen/support/models_tINIT_human_pipe/init*** or from ***epigen/support/models_tINIT_human_pipe/init/notsk_wdemethtsk*** to folder ***Human1_Publication_Data_Scripts/ec_GEMs/models/humanGEM_cellLines*** in a cluster, to get GECKO models with or without cell-type specific tasks or without cell-specific tasks except DNA demethylation ones.
+* adapt ***main.sh*** for number of jobs (models) to run and run ***main.sh*** from folder ***Human1_Publication_Data_Scripts/ec_GEMs/ComplementaryScripts***
 * ***main.sh*** creates jobs (one for each model) by calling the script ***generate_human_ecModels_NCI60_batch.sh***, which in turn calls ***generate_human_ecModels_NCI60_batch.m***
 
 #### C. Obtain gecko model of generic traditional model
@@ -91,15 +91,23 @@ to get GECKO models with or without cell-type specific tasks.
   - creates boxplots with relative errors of predicted growth rates.
 
 #### E. Simulations with GECKO models created with Richelle's and Robinson's pipelines
-* transfer folders with cell line names from ***Human1_Publication_Data_Scripts/ec_GEMs/models/*** to folder ***epigen/support/ecGEMs_richelle/fastcore/including_tsks*** or ***epigen/support/ecGEMs_richelle/fastcore/no_tsks*** or ***epigen/support/ecGEMs_human1/init/including_tsks*** or ***epigen/support/ecGEMs_human1/init/no_tsks***, depending on whether models do cell-specific tasks or not and depending on the type of reconstruction pipeline applied
+* transfer folders with cell line names from ***Human1_Publication_Data_Scripts/ec_GEMs/models/*** to folder ***epigen/support/ecGEMs_richelle/fastcore/including_tsks*** or ***epigen/support/ecGEMs_richelle/fastcore/no_tsks*** or ***epigen/support/ecGEMs_human1/init/including_tsks*** or ***epigen/support/ecGEMs_human1/init/no_tsks*** or ***epigen/support/ecGEMs_human1/init/notsk_wdemethtsk***, depending on what cell-specific tasks models do or not and depending on the type of reconstruction pipeline applied
 * run the script ***ecGEM_simul.py***:
    - if required, it allows the replacement of 'prodDNAtot' reaction by an equivalent one reflecting the cell line-specific ratio of DNA methylation
    - creates scatter plots with log10 of abs. val. of predicted fluxes vs measured fluxes of exchange reactions of 26 metabolites.
    - creates histograms with the distribution of abs. values of measured and simulated fluxes before and after logarithmization.
    - creates scatter plots with log10 of abs. val. of predicted vs measured growth rates
    - creates boxplots with relative errors of predicted growth rates.
-   - creates scatter plots with correlation level between simulated flux of different reactions and DNA methylation levels in different genomic positions (enhancers, TSS, ...)
+   - creates scatter plots with correlation level between simulated flux of different reactions and DNA methylation levels in different genomic positions (enhancers, TSS, ...).
    - creates a scatter plot with correlation level between measured biomass and measured methylation level of region upstream of TSS.
 * run script ***pathways.py***:
    - creates boxplots with average simulated flux and protein usage for top 5 pathways and central carbon + DNA (de)/methylation pathways across all cell lines/models
-   - creates heatmap with pathways which flux average has the highest variances across different tissues
+* run script ***pthw_target_corr.py***:
+   - produces tables with pathways whose average flux and protein usage significantly correlated (p-value < 0.05) with overall DNA methylation levels independently of cell growth rate across the cell lines.
+   - produces tables with individual reactions/enzymes whose flux and protein usage significantly correlated (p-value < 0.05) with overall DNA methylation levels independently of cell growth rate across the cell lines.
+   - creates tables with pathways of reactions corresponding to genes whose transcription was significantly correlated with the ratio between overall DNA methylation level and experimental cell growth rate.
+   - checks whether certain genes are in the list of genes whose transcription was significantly correlated with the ratio between overall DNA methylation level and experimental cell growth rate.
+   - intersect:
+     - genes whose promoter methylation significantly correlated with its transcription.
+     - genes whose promoter methylation significantly correlated with the cell growth rate across the different cell lines.
+     - genes associated with reactions whose flux, or the genes associated with enzymes whose protein usage, significantly correlated with the cell growth rate.

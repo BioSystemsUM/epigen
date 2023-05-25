@@ -192,6 +192,10 @@ class Reconstruction:
         if 'tsk_protect_path' in kwargs:
             # tsk_keep_df = pd.read_csv(tsk_protect_path, sep='\t', index_col=0)
             tsk_keep_df = pd.read_csv(kwargs['tsk_protect_path'], sep='\t', index_col=0)
+            '''
+            tsk_keep_df.drop(list(range(171,174)), inplace=True) # demethylation tasks are not anymore tissue specific, they are generic
+            '''
+            # tsk_dct = {t.name: t.mandatory_activity for t in tsk_lst}
             tsk_dct = {t.name: t.mandatory_activity for t in kwargs['tsk_lst']}
             for cond in tsk_keep_df:
                 tsks_cnd = list(tsk_keep_df[tsk_keep_df[cond] == 1].index)

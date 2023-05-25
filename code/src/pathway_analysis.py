@@ -4,12 +4,18 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import pandas as pd
 import numpy as np
 from test_mds import TestMds
-import json
-from cobra.io import load_matlab_model, read_sbml_model, load_yaml_model
+from cobra.io import load_matlab_model, load_yaml_model
 import re
+import math
+from scipy.stats import t
+import biomart
+import json
+from scipy.stats import hypergeom
+from statsmodels.stats.multitest import multipletests
+
 
 class PathAnalysis:
-    '''class with methods to analyze flux and protein usage in diferent pathways'''
+    '''class with methods to analyze flux and protein usage in different pathways or reactions/enzymes'''
     @staticmethod
     def clust_box_plts(f, nm_clst, nm_bx, nm_bx_2, ylabel, htmp_log, trsf, mth_corr_fld_path,
                        cell_width, cell_height, fn, xlab_siz, ylab_siz, xlab_rot,
@@ -110,7 +116,7 @@ class PathAnalysis:
                              xlab_rot, xcbar, ycbar, cbar_width, cbar_height, xheat,
                              yheat, heat_wf, heat_hf, rden_xf, cden_xf, rden_yf, cden_yf, rden_wf,
                              cden_wf, rden_hf, cden_hf, cbar_lab_siz, rclust, cclust,
-                             gr_const, cl_spec):
+                             gr_const, cl_spec, demeth_tsk):
         '''
         - creates clustermaps with mean flux values of each subsystem (top 20 with highest variance) for tissues/cell lines
         - creates boxplot with flux values of specific subsystems from all models when 'per_tissue' is False or from all tissues when 'per_tissue' is True
@@ -128,10 +134,16 @@ class PathAnalysis:
         :param trsf: which of 'min_max' normalization, 'std_scaling'  (i.e. standard scaling) and 'none' to apply to rows of heatmap
         :param gr_const: whether cell growth was constraint with experimental growth rates
         :param cl_spec: bool, whether cell line specific reaction of 'prodDNAtot' was used (True) or the generic was used instead (False).
+        :param demeth_tsk: bool, whether necessary reactions of demethylation tasks were included
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
         # other params used in applyclustermap
         '''
         if with_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'including_tsks')
-        else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
+        else:
+            if demeth_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'notsk_wdemethtsk')
+            else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
         if constr_ex: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'w_flux_constr')
         else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'no_flux_constr')
         if gr_const: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'biomass_constr')
@@ -143,7 +155,6 @@ class PathAnalysis:
         if type(constr_ex) == list:
             file_lst = [f for f in file_lst if '-'.join(constr_ex) in f]  # use only the files corresponding to the constraints we are testing
         file_pth = file_lst[0]
-        print(file_pth)
         df = pd.read_csv(file_pth, sep='\t', index_col=0)
         with open(methlt_fl_rc) as f:
             meth_rc = json.load(f)
@@ -159,10 +170,9 @@ class PathAnalysis:
         no_enz_r = [r for r in genr_nodraw if 'No' not in r and 'arm_' not in r]  # list of remaining reactions with no associated enzyme (non-catalyzed reactions)
         impt_r = set(one_enz_r).union(set(arm_r)).union(set(no_enz_r))  # all reactions except 'draw_prot', 'prot_pool_exchange', and leg reactions corresponding to arm_reactions (i.e. isozymes of arm_reactions)
         excp = ['prodDNAtot', 'adaptbiomass']  # artificial reactions - pseudo-reactions
-        mthrc = [r for r in (set(meth_rc) - set(excp)) if 'transp' not in r]  # all DNA methylation reactions except transport and artificial (pseudo-reactions)
-        # get dictionary with reaction id vs subsystem in generic gecko model,
-        # for all reactions except 'draw_prot', 'prot_pool_exchange', and leg reactions
-        # corresponding to arm_reactions (i.e. isozymes of arm_reactions):
+        mthrc = [r for r in (set(meth_rc) - set(excp)) if 'transp' not in r] + ['MAR08641']  # all DNA methylation reactions except transport and artificial (pseudo-reactions)
+        # get dictionary with reaction id vs subsystem in generic gecko model, for all reactions except
+        # 'draw_prot', 'prot_pool_exchange', and leg reactions corresponding to arm_reactions (i.e. isozymes of arm_reactions):
         sb_gek_d = {r: 'Transport reactions' if 'transp' in r else 'Artificial reactions' if r in excp else 'Dna (de)/methylation' if [r for mrc in mthrc if mrc in r] else sb_d[r.split('_')[1]] if r.startswith('arm_') else sb_d[r.split('_')[0]] if '_REV' in r else sb_d[r[:-3]] if r.endswith('No1') else sb_d[r] for r in impt_r}
         # from the simulated fluxes keep those of all reactions except 'draw_prot', 'prot_pool_exchange', and leg reactions corresponding to arm_reactions (i.e. isozymes of arm_reactions)
         otf = df.loc[set(df.index).intersection(impt_r)]
@@ -181,18 +191,22 @@ class PathAnalysis:
             otf = pd.concat(lst, axis=1)
         # add subsystem to each reaction of dataframe with simulated values:
         otf['Subsystem'] = [sb_gek_d[r] for r in otf.index]
-        nf = pd.DataFrame.from_dict({k: [v] for k, v in sb_gek_d.items()}).T
+        # subsystems of reactions (except 'draw_prot', 'prot_pool_exchange', and leg reactions corresponding to arm_reactions) of generic model that do not exist in otf dataframe:
+        nf = pd.DataFrame.from_dict({k: [v] for k, v in sb_gek_d.items() if k not in otf.index}).T
         nf.columns = ['Subsystem']
-        # create dataframe with simulated values and zero fluxes for all reactions,
+        # create dataframe with simulated values and zero fluxes for all reactions
         # in the generic gecko that do not exist in any context-specific model:
         flx = pd.concat([otf, pd.concat([pd.DataFrame(np.zeros((len(nf.index), len(otf.columns[:-1]))), index=nf.index, columns=otf.columns[:-1]), nf], axis=1)])
-        # use 'groupby' to get the 'mean flux' per each subsystem across diferent tissues or cell lines:
+        fld_allflx = os.path.join(mth_corr_fld_path, 'corr_pth_mth', )
+        if not os.path.exists(fld_allflx): os.makedirs(fld_allflx)
+        flx.to_csv(os.path.join(fld_allflx, 'allflx_rc_substm.tsv'), sep='\t')
+        # use 'groupby' to get the 'mean flux' per each subsystem across different tissues or cell lines:
         if op == 'mean':
             plt_f = flx.groupby('Subsystem').mean()
-            ylabel = 'Average Flux (mmmol/gDWh)'
+            ylabel = 'Average Flux (mmol/gDW.h)'
         elif op == 'sum':
             plt_f = flx.groupby('Subsystem').sum()
-            ylabel = 'Total Flux (mmmol/gDWh)'
+            ylabel = 'Total Flux (mmol/gDW.h)'
         PathAnalysis.clust_box_plts(f=plt_f, nm_clst='var_heatmap.svg', nm_bx='boxplot.svg', nm_bx_2='boxplot_top5path.svg',
                        ylabel=ylabel, htmp_log=htmp_log, trsf=trsf, mth_corr_fld_path=mth_corr_fld_path,
                        cell_width=cell_width, cell_height=cell_height, fn=fn, xlab_siz=xlab_siz, ylab_siz=ylab_siz,
@@ -209,7 +223,7 @@ class PathAnalysis:
                                 xlab_rot, xcbar, ycbar, cbar_width, cbar_height, xheat,
                                 yheat, heat_wf, heat_hf, rden_xf, cden_xf, rden_yf, cden_yf, rden_wf,
                                 cden_wf, rden_hf, cden_hf, cbar_lab_siz, rclust, cclust,
-                                gr_const, cl_spec):
+                                gr_const, cl_spec, demeth_tsk):
         '''
             - creates clustermaps with mean protein usage of each subsystem (top 20 with highest variance) for tissues/cell lines
             - creates boxplot with protein usage of specific subsystems from all models when 'per_tissue' is False or from all tissues when 'per_tissue' is True
@@ -228,10 +242,16 @@ class PathAnalysis:
             :param trsf: which of 'min_max' normalization, 'std_scaling'  (i.e. standard scaling) and 'none' to apply to rows of heatmap
             :param gr_const: whether cell growth was constraint with experimental growth rates
             :param cl_spec: bool, whether cell line specific reaction of 'prodDNAtot' was used (True) or the generic was used instead (False).
+            :param demeth_tsk: bool, whether necessary reactions of demethylation tasks were included
+                       (included only if those are done in specific cell line)
+                       when the reactions needed for other cell specific tasks are NOT included.
+                       default is False.
             # other params used in applyclustermap
         '''
         if with_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'including_tsks')
-        else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
+        else:
+            if demeth_tsk: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'notsk_wdemethtsk')
+            else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, algo, 'no_tsks')
         if constr_ex: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'w_flux_constr')
         else: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'no_flux_constr')
         if gr_const: mth_corr_fld_path = os.path.join(mth_corr_fld_path, 'biomass_constr')
@@ -248,7 +268,7 @@ class PathAnalysis:
         with open(methlt_fl_rc) as f:
             meth_rc = json.load(f)
         ms = load_matlab_model(gen_gecko_pth)  # generic gecko model
-        # get correspondence between reaction and enzyme id - gets rid of 'arm' and non-catalyzed reactions:
+        # get correspondence between reaction and enzyme id for generic gecko model - gets rid of 'arm' and non-catalyzed reactions:
         fr = pd.DataFrame([(r.id, mt.id) for r in ms.reactions for mt in r.metabolites if 'prot' in mt.id])
         fr.index = fr[0]
         fr = fr.drop(0, axis=1)
@@ -260,7 +280,7 @@ class PathAnalysis:
         m = load_yaml_model(gen_md_pth)  # generic traditional model
         sb_d = {r.id: r.subsystem[0] for r in m.reactions}
         excp = ['prodDNAtot', 'adaptbiomass']  # artificial reactions - pseudo-reactions
-        mthrc = [r for r in (set(meth_rc) - set(excp)) if 'transp' not in r]  # all DNA methylation reactions except transport and artificial (pseudo-reactions)
+        mthrc = [r for r in (set(meth_rc) - set(excp)) if 'transp' not in r] + ['MAR08641']  # all DNA methylation reactions except transport and artificial (pseudo-reactions)
         sb_gek_d = {r: 'Transport reactions' if 'transp' in r else 'Artificial reactions' if r in excp else 'Dna (de)/methylation' if [r for mrc in mthrc if mrc in r] else sb_d[r.split('_')[0]] if '_REV' in r else sb_d[re.sub(r'No\d+', '', r)] if bool(re.search(r'No\d+', r)) else sb_d[r] for r in ofr.index}
         nd3 = ofr.join(pd.DataFrame(sb_gek_d, index=['Subsystem']).T)
         # - note: same enzyme may be used by different reactions of different subsystems, e.g. nd3.loc[nd3['Enzyme'] == 'prot_A0A087WXM9'],
@@ -291,25 +311,28 @@ class PathAnalysis:
                 lst.append(r)
             df2 = pd.concat(lst, axis=1)
         df2['Reaction'] = df2.index
-        # create dataframe with simulated values and zero fluxes for all reactions,
+        # create dataframe with simulated values and zero fluxes for all reactions
         # in the generic gecko that do not exist in any context-specific model:
-        mrg3 = pd.merge(mrg2, df2, on='Reaction', how='left')  # how='left' to get rid of 'draw_prot'reactions, 'prot_pool_exchange' and 'arm_' reactions in df, and to create space for reactions not in any reconstructed model
+        mrg3 = pd.merge(mrg2, df2, on='Reaction', how='left')  # how='left' to get rid of 'draw_prot'reactions, 'prot_pool_exchange' and 'arm_' reactions in df2, and to create space for reactions not in any reconstructed model
         mrg3.fillna(0, inplace=True)  # NAs here are reactions from generic model that do not exist in any tissue specific model
         # get protein usage in each individual reaction-enzyme combination in mg/gDW:
         divs = (mrg3.iloc[:, 5:]).div(mrg3['Kcat'], axis=0)
-        wtfrc = divs.multiply(mrg3['MMW'], axis=0) * 1000
+        wtfrc = divs.multiply(mrg3['MMW'], axis=0) * 1000 # note that MW is in KDa = 1000g/mol = 1g/mmol, and we want result in mg/gDW
         frc = pd.concat([mrg3.iloc[:, :5], wtfrc], axis=1)
         frc.drop(['Kcat', 'MMW'], axis=1, inplace=True)
+        fld_allprot = os.path.join(mth_corr_fld_path, 'corr_pth_mth', )
+        if not os.path.exists(fld_allprot): os.makedirs(fld_allprot)
+        frc.to_csv(os.path.join(fld_allprot, 'allprot_rc_substm.tsv'), sep='\t')
         # use 'groupby' to get the 'mean flux' per each subsystem across different tissues or cell lines.
         # Note that we need to divide by the number of reaction-enzyme combinations,
         # to correct for the bias that subsystems with more reactions
         # and with reactions containing more enzymes have the tendency to use more protein:
         if op == 'mean':
             plt_f = frc.groupby('Subsystem').mean()  # 'mean()' divides by number of combinations (enzyme, reaction, subsystem)
-            ylabel = 'Average Protein (mg/gDWh)'
+            ylabel = 'Average Protein (mg/gDW)'
         elif op == 'sum':
             plt_f = frc.groupby('Subsystem').sum()
-            ylabel = 'Total Protein (mg/gDWh)'
+            ylabel = 'Total Protein (mg/gDW)'
         PathAnalysis.clust_box_plts(f=plt_f, nm_clst='prot_var_heatmap.svg', nm_bx='prot_boxplot.svg',
                        nm_bx_2='prot_boxplot_top5path.svg', ylabel=ylabel, htmp_log=htmp_log, trsf=trsf,
                        mth_corr_fld_path=mth_corr_fld_path, cell_width=cell_width, cell_height=cell_height, fn=fn, xlab_siz=xlab_siz, ylab_siz=ylab_siz,
@@ -318,4 +341,104 @@ class PathAnalysis:
                        cden_wf=cden_wf, rden_hf=rden_hf, cden_hf=cden_hf, cbar_lab_siz=cbar_lab_siz, rclust=rclust, cclust=cclust)
         # mass histogram distribution:
         Graphs.dist_plt(frm=plt_f, fld=mth_corr_fld_path, fnm='mass_distribution.svg')
+
+    @staticmethod
+    def r2p(r, N, two_tails=True):
+        """
+        Calculates the p value from a coefficient correlation.
+        :param (float) r: the coefficient correlation value
+        :param (int) N: Sample size
+        :param (bool) two_tails: 1 or 2 tails. Default 2 tails.
+        """
+        r = np.abs(r)
+        x = r * math.sqrt(N - 2) / math.sqrt(1 - r * r)
+        p = t.sf(x, df=N - 2)
+        if two_tails:
+            return 2 * p
+        else:
+            return p
+    @staticmethod
+    def get_ensembl_mappings(fl_json):
+        '''
+        - get dictionary with mapping of ensembl gene ids to gene symbol
+        - adapted from: 'https://autobencoder.com/2021-10-03-gene-conversion/'
+        :param fl_json: path to .json file where to retrieve the mappings or where to save the mappings if the file does not exist yet
+        '''
+        if os.path.exists(fl_json): # if .json file already exists load it
+            with open(fl_json, mode='r') as f:
+                genesymbol_to_ensembl = json.loads(f.read())
+        else:
+            fld_sv = '/'.join(fl_json.split('/')[:-1])
+            if not os.path.exists(fld_sv):
+                os.makedirs(fld_sv)
+            # set up connection to server:
+            server = biomart.BiomartServer('http://useast.ensembl.org/biomart/martservice')
+            mart = server.datasets['hsapiens_gene_ensembl']
+            # list the types of data we want
+            attributes = ['hgnc_symbol', 'ensembl_gene_id']
+            # get the mapping between the attributes
+            response = mart.search({'attributes': attributes})
+            # to select directly the ids we need to convert we could do:
+            # response = mart.search({'attributes': attributes, 'filters': {'hgnc_symbol': gene_symbol_lst}})
+            # but if gene_symbol_lst is too big it complains it is too big of a request.
+            # convert request results from a binary string to an easier-to-work-with text string:
+            data = response.raw.data.decode('ascii')
+            genesymbol_to_ensembl = list()
+            for line in data.splitlines():
+                line = line.split('\t')
+                # the entries are in the same order as in the `attributes` variable:
+                gene_symbol = line[0]
+                ensembl_gene = line[1]
+                if len(gene_symbol) > 0:  # if not empty
+                    genesymbol_to_ensembl.append((gene_symbol, ensembl_gene))
+            with open(fl_json, mode='w') as f:
+                json.dump(genesymbol_to_ensembl, f)
+        return genesymbol_to_ensembl
+    @staticmethod
+    def hypergemtest(sample_gene_sb, population_gene_sb, sample_sb):
+        '''
+        - do hypergeometric test and multiple test correction(FDR with Benjamin Hochberg)
+        :param sample_gene_sb: dictionary {gene: [subsystem, ...]} where each gene is a gene of the sample
+                               and each subsystem is subsystem of a reaction corresponding to taht gene in the generic model.
+        :param population_gene_sb: dictionary {gene: [subsystem, ...]} where each gene is a gene of the population,
+                               i.e. of the generic model, and each subsystem is subsystem of a reaction corresponding to taht gene in the generic model.
+        :param sample_sb: set with subsystems of all reactions corresponding to the genes in the sample
+        '''
+        # get number of successes in sample for each pathway:
+        ns_smp = dict()
+        for v in sample_gene_sb.values():
+            for el in v:
+                if el in ns_smp:
+                    ns_smp[el] += 1
+                else:
+                    ns_smp[el] = 1
+        # get number of successes in population:
+        ns_pop = dict()
+        for v in population_gene_sb.values():
+            for el in v:
+                if el in ns_pop:
+                    ns_pop[el] += 1
+                else:
+                    ns_pop[el] = 1
+        # size of sample:
+        N = len([el for v in sample_gene_sb.values() for el in v])
+        # size of population:
+        M = len([el for v in population_gene_sb.values() for el in v])
+        # do the test:
+        # "x-1" in the formula is explained at https://alexlenail.medium.com/understanding-and-implementing-the-hypergeometric-test-in-python-a7db688a7458
+        hyptest = dict()
+        for sb in sample_sb:
+            x = ns_smp[sb]  # number of successes in sample
+            n = ns_pop[sb]  # number of successes in population
+            pval = hypergeom.sf(x - 1, M, n, N)
+            hyptest[sb] = [pval]
+        hypfram = pd.DataFrame(hyptest).T
+        hypfram.rename(columns={0: 'Pval'}, inplace=True)
+        # apply multitest:
+        hypfram['Pval'] = multipletests(pvals=hypfram['Pval'], method='fdr_bh')[1]
+        # select significant:
+        hypfram_sig = hypfram[hypfram['Pval'] < 0.05]
+        # sort by pvalue:
+        hypsig = hypfram_sig.sort_values('Pval', ascending=True)
+        return hypsig
 

@@ -474,14 +474,6 @@ class TestMds:
         else:
             t_remove = set(constr_ex)
         envcond_df = envcond_df.drop(list(t_remove), axis=0).drop('human1_metabolite', axis=1)
-
-        # NOT SURE IF SHOULD EXCLUDE THE MEDIUM!!!
-        #envcond_df = envcond_df.loc[~envcond_df.index.isin(med_comp.values()), :]
-        # replace the bounds (resulting from experimental error) given to experimental fluxes, by their mean:
-        # envcond_df.columns = [c_name[:-2] if c_name.endswith('.1') else c_name for c_name in envcond_df.columns]
-        # envf = envcond_df.T
-        # envf['Condition'] = envf.index
-        # envf = envf.groupby('Condition').mean().T
         envcond_df = envcond_df.drop('adaptbiomass', axis=0)
         envf = envcond_df
         # build dataframe with correlations between simulated and experimental fluxes
@@ -537,8 +529,8 @@ class TestMds:
         '''
         raw_df = pd.read_csv(methlt_pth, sep='\t', index_col=0, na_values=['    NaN', '     NA']).iloc[:-1, :]
         meth_df = raw_df.iloc[:, 2:]
-        mean_mth = meth_df.apply(lambda row: row.dropna().median(), axis=1).to_dict()
-        meth_df.apply(lambda row: row.fillna(value=mean_mth[row.name], inplace=True), axis=1)
+        median_mth = meth_df.apply(lambda row: row.dropna().median(), axis=1).to_dict()
+        meth_df.apply(lambda row: row.fillna(value=median_mth[row.name], inplace=True), axis=1)
         meth_res = meth_df.sum()
         return meth_res
 
@@ -551,8 +543,8 @@ class TestMds:
         :param smp_info: path to file with cell line info
         '''
         meth_df = pd.read_excel(methlt_pth, sheet_name='Results', index_col=1, skiprows=10, skipfooter=7, na_values=['-']).iloc[:, 5:]
-        mean_mth = meth_df.apply(lambda row: row.dropna().median(), axis=1).to_dict()
-        meth_df.apply(lambda row: row.fillna(value=mean_mth[row.name], inplace=True), axis=1)
+        median_mth = meth_df.apply(lambda row: row.dropna().median(), axis=1).to_dict()
+        meth_df.apply(lambda row: row.fillna(value=median_mth[row.name], inplace=True), axis=1)
         meth_df.columns = [c.split(':')[1] for c in meth_df.columns]
         CellLineIds.convert_cell_line_names(file=meth_df, smp_info=smp_info, no_fst_clmn=True)
         meth_res = meth_df.sum()
@@ -588,7 +580,6 @@ class TestMds:
             #             xy=(1.05, .5), xycoords=ax.transAxes, fontsize=12)
 
         sv_fld = '/'.join(file_pth.split('/')[:-1])
-        # nm = file_pth.split('.tsv')[0].split('/')[-1]
         nm = 'fluxcomp'
         if divide_by_biomass:
             list_meth_rc.append('adaptbiomass')
@@ -599,7 +590,7 @@ class TestMds:
         df = pd.concat([simul_df.T] + exp_df_lst, axis=1)
         cols = [col.replace('arm_', '') if 'arm_' in col else re.sub('No[0-9]+', '', col) if 'No' in col else col for col in df]
         df.columns = cols
-        df.dropna(inplace=True)
+        df.dropna(inplace=True) # removes cell lines that do not have experimental values for all experimental dataframes
         d = {'Illumina_450K_methylation_Gene_average': 'Genes',
              'DNA_methylation_ratio': 'Global DNA methylation',
              'TSS1kb': 'Upstream of TSS',
@@ -725,11 +716,11 @@ class TestMds:
         # in this study there are 4 datasets of this type
         # - RRBS_ehn_CpG_clusters: DNA methylation clusters
         # - RRBS_cgi_CpG_clusters: DNA methylation CpG islands
-        # - RRBS_ts_CpG_clusters DNA methylation promoter CpG clusters
+        # - RRBS_ts_CpG_clusters DNA methylation Transcription Site CpG clusters
         # - RRBS_TSS1kb: DNA methylation promoter 1kb upstream TSS
         mth_res_lst = list()
         for file_nm in os.listdir(methlt_dt_fld):
-            # file_nm = os.listdir(methlt_dt_fld)[0]
+            # file_nm = os.listdir(methlt_dt_fld)[6]
             # obtain total value of DNA methylation for each cell line:
             if file_nm.endswith('.txt'):
                 mth_df = cls.load_meth_dataset(methlt_pth=os.path.join(methlt_dt_fld, file_nm))
