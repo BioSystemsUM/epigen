@@ -1,8 +1,8 @@
 This repository contains the description of the steps and original python scripts used to do the analyses presented in the manuscript …...
 All data (used in both original Python and adapted Matlab scripts) together with the adapted Matlab scripts are deposited at ... zenodo?
 
-The MATLAB scripts were adapted from [Human-GEM GitHub repository](https://github.com/SysBioChalmers/Human-GEM) (version 1.3.0) and [here](https://doi.org/10.5281/zenodo.3577466), and were run on Windows.
-Python scripts were run on Linux.
+Python scripts were run on Linux. The MATLAB scripts were adapted from [Human-GEM GitHub repository](https://github.com/SysBioChalmers/Human-GEM) (version 1.3.0) and [here](https://doi.org/10.5281/zenodo.3577466), and were run on Windows, except the one run on a server (***generate_human_ecModels_NCI60_batch.m***).
+
 
 ### Required Python modules:
 * [mewpy v0.1.12](https://github.com/BioSystemsUM/MEWpy)
@@ -33,6 +33,7 @@ Python scripts were run on Linux.
 * [libSBML MATLAB API](https://sourceforge.net/projects/sbml/files/libsbml/5.13.0/stable/MATLAB%20interface/) ](version 5.13.0)
 
 ### Steps to reproduce the analysis:
+- replace ***home_path*** by your home directory in every python script.
 #### A. Reconstruct models with FASTCORE using python pipeline based on [Richelle's article](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006867)
 1. run ***richelle_pipe.py***
     - creates a generic DNA methylation model: adds reactions, gene rules and metabolites related with DNA (de)methylation to ***Human1v12*** model
