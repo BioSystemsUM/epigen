@@ -85,51 +85,7 @@ class Simulation:
                 print(md_nm, 'infeasible')
                 unfeas += 1
                 return unfeas
-
-    # @staticmethod
-    # def minSumFluxes_add_rules_GEMs(model, envcond, constraints):
-    #     '''
-    #     - uses mewpy to do a pFBA without a second objective (i.e. to minimize the sum of fluxes of all reactions withOUT maximizing biomass)
-    #     :param model: cobrapy loaded model
-    #     :param envcond: dictionary with exchange reactions ids and corresponding bounds
-    #     :param constraints: dictionary with internal reactions ids and corresponding bounds
-    #     :return: solution instance containing the resulting pfba fluxes and status
-    #     '''
-    #     sim = get_simulator(model=model, envcond=envcond)
-    #     solver = solver_instance(sim)
-    #     for r_id in sim.reactions:
-    #         lb, _ = sim.get_reaction_bounds(r_id)
-    #         if lb < 0:
-    #             pos, neg = r_id + '+', r_id + '-'
-    #             solver.add_variable(pos, 0, inf, update=False)
-    #             solver.add_variable(neg, 0, inf, update=False)
-    #     solver.update()
-    #     for r_id in sim.reactions:
-    #         lb, _ = sim.get_reaction_bounds(r_id)
-    #         if lb < 0:
-    #             pos, neg = r_id + '+', r_id + '-'
-    #             solver.add_constraint('c' + pos, {r_id: -1, pos: 1}, '>', 0, update=False)
-    #             solver.add_constraint('c' + neg, {r_id: 1, neg: 1}, '>', 0, update=False)
-    #     solver.update()
-    #     # add flux constraints' rules:
-    #     solver.add_constraint('constA', {'prodDNA5hmC': 1, 'prodDNA5fC': -5.6}, '=', 0, update=False)
-    #     if 'prodDNA5CaC' in sim.reactions:
-    #         solver.add_constraint('constB', {'prodDNA5hmc': 1, 'prodDNA5CaC': -10.2}, '=', 0, update=False)
-    #     if 'prodAPsite4' in sim.reactions:
-    #         solver.add_constraint('constC', {'prodAPsite4': 1, 'prodDNA5CaC': -(2/3)}, '=', 0, update=False)
-    #     solver.update()
-    #     objective = dict()
-    #     for r_id in sim.reactions:
-    #         lb, _ = sim.get_reaction_bounds(r_id)
-    #         if lb < 0:
-    #             pos, neg = r_id + '+', r_id + '-'
-    #             objective[pos] = 1
-    #             objective[neg] = 1
-    #         else:
-    #             objective[r_id] = 1
-    #     solution = solver.solve(objective, minimize=True, constraints=constraints)
-    #     return solution
-
+    
     @staticmethod
     def get_env_const_ecGEMs(m, m_nm, constr_ex, med_ex_ids, **kwargs):
         '''
