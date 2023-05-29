@@ -18,14 +18,6 @@ class CellLineIds:
         :param kwargs no_fst_clmn: boolean. True if the first column does Not have other information besides cell line names
         :return: the same file with the official CCLE cell line names
         '''
-        # repl_cl_nm = {
-        #     'A549/ATCC': 'A549_LUNG',
-        #     'MDAMB435': 'MDAMB435S_SKIN',
-        #     'OVCAR3': 'NIHOVCAR3_OVARY',
-        #     'HL60(TB)': 'HL60_HAEMATOPOIETIC_AND_LYMPHOID_TISSUE',
-        #     'U251': 'U251MG_CENTRAL_NERVOUS_SYSTEM',
-        #     'MDAMB231/ATCC': 'MDAMB231_BREAST',
-        #     'SR': 'SR786_HAEMATOPOIETIC_AND_LYMPHOID_TISSUE'}
         repl_cl_nm = {
             'A549ATCC': 'A549_LUNG',
             'MDAMB435': 'MDAMB435S_SKIN',

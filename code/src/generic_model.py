@@ -151,18 +151,6 @@ class GenericMdOperations:
         prc_md = self.processed(model=tst_md, meth_rc=common_ids)
         cobra.io.write_sbml_model(prc_md, os.path.join(meth_md_fld, 'prodDNAtot')+'.xml')
 
-        # create models, each model containing a different reaction for the formation of DNAtot - with different metabolites:
-        # for rid in rc_include.index[0:6]:
-        #     print(rid)
-        #     mtlst = rc_include.loc[rid, 'add_metabolites']
-        #     with tst_md as ct_md:
-        #         ct_md.add_reactions([Reaction(id='prodDNAtot', subsystem=rc_include.loc[rid, 'subsystem'], lower_bound=0.0, upper_bound=1000.0)])
-        #         GenericMdOperations.set_metab(mtlst=mtlst, model=ct_md, rid='prodDNAtot')
-        #         ct_md.objective = 'adaptbiomass'
-        #         # next remove blocked reactions and test models ability to produce biomass:
-        #         prc_md = self.processed(ct_md)
-        #         cobra.io.write_sbml_model(prc_md, os.path.join(meth_md_fld, rid)+'.xml')
-
     def convert_xml_to_mat(self, xml_path, closed, **kwargs):
         '''
         - save xml model as .mat model
@@ -180,8 +168,6 @@ class GenericMdOperations:
                     ex.bounds = (-1000.0, 1000.0)
                 else:
                     ex.bounds = (0.0, 1000.0)
-            # blck_rc = cobra.flux_analysis.find_blocked_reactions(md)
-            # md.remove_reactions(blck_rc, remove_orphans=True)
         mat_path = xml_path.split('.')[0]
         save_matlab_model(md, mat_path + '.mat')
 

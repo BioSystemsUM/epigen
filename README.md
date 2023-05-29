@@ -1,28 +1,26 @@
-This repository contains the scripts used to do the analyses presented in the manuscript …...
-The data is deposited at ... zenodo?
+This repository contains the description of the steps and original python scripts used to do the analyses presented in the manuscript …...
+All data (used in both original Python and adapted Matlab scripts) together with the adapted Matlab scripts are deposited at ... zenodo?
 
-Note: The MATLAB scripts are adapted from [Human-GEM GitHub repository](https://github.com/SysBioChalmers/Human-GEM) (version 1.3.0) and were run on Windows.
+The MATLAB scripts were adapted from [Human-GEM GitHub repository](https://github.com/SysBioChalmers/Human-GEM) (version 1.3.0) and [here](https://doi.org/10.5281/zenodo.3577466), and were run on Windows.
+Python scripts were run on Linux.
 
 ### Required Python modules:
-* mewpy
-* troppo
-* cobamp
-* pandas
-* cobra
-* numpy
-* matplotlib
-* scipy
-* seaborn
-* json
-* re
-* functools
-* faker
-* scipy
-* sklearn
-* itertools
-* math
-* multiprocessing
-* pathos
+* [mewpy v0.1.12](https://github.com/BioSystemsUM/MEWpy)
+* [troppo](https://github.com/BioSystemsUM/troppo)
+* [cobamp v0.1.4](https://github.com/BioSystemsUM/cobamp)
+* pandas v1.3.5
+* cobrapy v0.25.0
+* numpy v1.21.5
+* matplotlib v3.2.2
+* scipy v1.5.2
+* seaborn v0.11.0
+* json5 v0.9.5
+* regex 2020.10.15
+* faker v5.8.0
+* scipy v1.5.2
+* scikit-learn v0.23.2
+* multiprocess v0.70.11.1
+* pathos v0.2.7
 
 
 ### Software used to run code on MATLAB:
@@ -61,7 +59,7 @@ to get GECKO models with or without cell-type specific tasks.
    * saves model as ***.mat*** object (***epigen/support/models/prodDNAtot.mat***)
    * saves transcriptomics data as ***.mat*** object (***epigen/data/transcriptomics/CCLE_RNAseq_rsem_genes_tpm_20180929.mat***)
 2. run scripts adapted from [Human-GEM GitHub repository](https://github.com/SysBioChalmers/Human-GEM) (version 1.3.0) – [original data files here](https://doi.org/10.5281/zenodo.3577466).
-* clone GECKO repository inside folder ***Human1_Publication_Data_Scripts\ec_GEMs\ComplementaryScripts***
+* clone [GECKO repository (v1.3.5)](https://github.com/SysBioChalmers/GECKO/archive/refs/tags/v1.3.5.zip) inside directory ***Human1_Publication_Data_Scripts\ec_GEMs\ComplementaryScripts***
 * transfer files ***epigen/support/transcriptomics/CCLE_RNAseq_rsem_genes_tpm_20180929.mat***  and ***epigen/support/models/prodDNAtot.mat*** to ***Human1_Publication_Data_Scripts\tINIT_GEMs\data***.
 * copy file ***data/tasks/metabolicTasks_Essential.xlsx*** to folder ***Human1_Publication_Data_Scripts\tINIT_GEMs\metabolic_tasks***, make sure the excel sheet name is ***TASKS***.
 * replace ***x*** by ***b*** in the function ***Human-GEM\ComplementaryScripts\Functions\addBoundaryMets.m***
